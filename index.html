@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0e1b2a" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Wassersport-Karte" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="data/signs/E.17.png" />
+<title>Wassersport-Karte Deutschland – Slipstellen, Wasserski & Jetski</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<style>
+  :root{
+    --bg:#0e1b2a; --panel:#13263b; --panel2:#1b3550; --line:#27496b;
+    --txt:#eaf2fb; --muted:#9fb6cf; --accent:#3aa0ff; --warn:#ff5a5a; --ok:#2ec28a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+  #app{display:flex;height:100%;overflow:hidden}
+  #side{width:344px;min-width:344px;height:100%;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+  #side header{padding:15px 16px 12px;border-bottom:1px solid var(--line)}
+  #side header h1{margin:0;font-size:17px}
+  #side header p{margin:6px 0 0;font-size:12px;color:var(--muted);line-height:1.5}
+  .scroll{overflow-y:auto;flex:1;padding:13px 16px 30px}
+  .group{margin-bottom:18px}
+  .group h2{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin:0 0 10px}
+  .searchbox{display:flex;gap:6px;margin-bottom:10px}
+  .searchbox input{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--txt);padding:10px 11px;font-size:13px}
+  .searchbox input::placeholder{color:#6f88a3}
+  .searchbox button{background:var(--accent);border:0;border-radius:9px;color:#fff;padding:0 13px;cursor:pointer;font-size:15px}
+  .layer{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;user-select:none}
+  .layer:hover{border-color:var(--accent)}
+  .layer input{accent-color:var(--accent);width:17px;height:17px}
+  .dot{width:14px;height:14px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 3px rgba(255,255,255,.06)}
+  .layer .lab{flex:1}
+  .layer .lab b{display:block;font-size:14px}
+  .layer .lab span{font-size:11px;color:var(--muted)}
+  .layer .cnt{font-size:12px;color:var(--muted);min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
+  button.ghost{width:100%;background:transparent;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;cursor:pointer;margin-top:4px}
+  button.ghost:hover{border-color:var(--accent)}
+  .status{font-size:12px;color:var(--muted);margin-top:10px;min-height:16px;line-height:1.5}
+  .sign{display:flex;gap:11px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}
+  .sign svg{flex:0 0 auto;border-radius:4px}
+  .sign .meta b{font-size:13px;display:block}
+  .sign .meta code{font-size:11px;color:var(--accent);background:rgba(58,160,255,.12);padding:1px 6px;border-radius:5px}
+  .sign .meta span{display:block;font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.45}
+  .legend-note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:4px}
+  a{color:var(--accent)}
+  #map{flex:1;height:100%;background:#0b1622}
+  .leaflet-popup-content-wrapper{background:var(--panel);color:var(--txt);border-radius:10px}
+  .leaflet-popup-content{margin:12px 14px;font-size:13px;line-height:1.5}
+  .leaflet-popup-content b{font-size:14px}
+  .leaflet-popup-tip{background:var(--panel)}
+  .pop-tag{display:inline-block;font-size:11px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);padding:1px 7px;border-radius:6px;margin:3px 4px 0 0}
+  .pop-link{display:inline-block;margin-top:8px;font-size:12px}
+  #burger{display:none}
+  @media (max-width:760px){
+    #side{position:absolute;z-index:1200;left:0;top:0;width:86vw;min-width:0;max-width:360px;transform:translateX(-100%);transition:.25s;box-shadow:0 0 40px rgba(0,0,0,.5);padding-top:env(safe-area-inset-top)}
+    #side.open{transform:none}
+    #burger{display:flex;position:absolute;z-index:1100;left:max(12px,env(safe-area-inset-left));top:max(12px,env(safe-area-inset-top));width:46px;height:46px;border-radius:12px;background:var(--panel);border:1px solid var(--line);color:#fff;font-size:22px;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+    .leaflet-control-zoom{margin-top:64px!important}
+    .layer{padding:13px 12px}
+    .layer input{width:20px;height:20px}
+    button.add,button.amt,button.action,button.ghost{padding:14px}
+    .modal-bg{padding:0;align-items:flex-end}
+    .modal{width:100%;max-width:100%;max-height:90vh;border-radius:16px 16px 0 0;padding-bottom:env(safe-area-inset-bottom)}
+    .modal h3{font-size:15px;padding:14px}
+    .pickgrid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+    .addbanner{top:max(10px,env(safe-area-inset-top));font-size:12px;padding:8px 14px;width:max-content;max-width:92vw;text-align:center}
+    #q,.searchbox input{font-size:16px}/* >=16px verhindert Auto-Zoom auf iOS */
+    .pick-q,#pick-q{font-size:16px}
+  }
+  .badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(46,194,138,.15);color:var(--ok);border:1px solid rgba(46,194,138,.3);margin-left:6px;vertical-align:middle}
+  button.amt{width:100%;background:linear-gradient(180deg,#2ec28a,#1f9e6e);color:#06281c;border:0;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px}
+  button.amt:hover{filter:brightness(1.06)}
+  /* Modal / Extra-Fenster */
+  .modal-bg{position:fixed;inset:0;z-index:2000;background:rgba(4,10,18,.72);display:none;align-items:center;justify-content:center;padding:20px}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:min(620px,100%);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .modal h3{margin:0;padding:16px 18px;border-bottom:1px solid var(--line);font-size:16px;display:flex;justify-content:space-between;align-items:center}
+  .modal h3 button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:15px}
+  .modal .mbody{overflow-y:auto;padding:14px 18px 22px}
+  .modal .intro{font-size:12px;color:var(--muted);line-height:1.55;margin:0 0 14px}
+  .riv{margin-bottom:16px}
+  .riv h4{font-size:13px;margin:0 0 8px;color:#cfe2f7;border-left:3px solid var(--ok);padding-left:8px}
+  .strk{display:flex;gap:10px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:6px;cursor:pointer}
+  .strk:hover{border-color:var(--ok)}
+  .strk .km{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ok);min-width:92px;font-weight:600}
+  .strk .info{flex:1}
+  .strk .info b{font-size:13px;font-weight:500}
+  .strk .info span{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+  .chip{display:inline-block;font-size:9.5px;padding:1px 6px;border-radius:10px;margin-left:6px;vertical-align:middle}
+  .chip.a{background:rgba(46,194,138,.16);color:#7fe6bd;border:1px solid rgba(46,194,138,.35)}
+  .chip.r{background:rgba(255,159,28,.16);color:#ffc987;border:1px solid rgba(255,159,28,.35)}
+  .kmmark{background:#fde89a;color:#3a2c00;font-size:10px;font-weight:700;border:1px solid #8a6d00;border-radius:4px;padding:0 4px;line-height:15px;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.4)}
+  .kmhint{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+  button.add{width:100%;background:linear-gradient(180deg,#ffb02e,#e08a00);color:#3a2400;border:0;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px}
+  button.add:hover{filter:brightness(1.06)}
+  button.add.active{background:linear-gradient(180deg,#ff5a5a,#c62828);color:#fff}
+  .addbanner{position:absolute;z-index:1150;top:12px;left:50%;transform:translateX(-50%);background:#c62828;color:#fff;padding:9px 16px;border-radius:20px;font-size:13px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.4);display:none}
+  .addbanner.show{display:block}
+  .pickgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+  .pcard{display:flex;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:7px 8px;cursor:pointer;overflow:hidden}
+  .pcard:hover{border-color:var(--accent);background:#214064}
+  .pcard svg,.pcard img{flex:0 0 auto}
+  .pcard .pi{min-width:0;flex:1 1 auto}
+  .pcard .pi b{font-size:11px;display:block;line-height:1.22;overflow-wrap:anywhere;word-break:break-word;hyphens:auto}
+  .pcard .pi code{font-size:10px;color:var(--accent)}
+  .pcard .pi small{font-size:9.5px;color:var(--muted)}
+  .catfilter{display:flex;gap:7px;margin-bottom:10px}
+  .catchip{background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:16px;padding:5px 13px;font-size:12px;cursor:pointer}
+  .catchip:hover{border-color:var(--accent);color:var(--txt)}
+  .catchip.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  #map.addmode{cursor:crosshair}
+  .signimg{display:block;object-fit:contain}
+  .sign .signimg{border:1px solid var(--line);border-radius:3px}
+  .pcard img{flex:0 0 auto;border-radius:3px}
+  .signfb{display:inline-flex;align-items:center;justify-content:center;background:#fff;color:#111;border:2px solid #d11;border-radius:4px;font-size:9px;font-weight:700;text-align:center;line-height:1.05;padding:1px}
+  .usericon{filter:drop-shadow(0 2px 3px rgba(0,0,0,.55));background:#fff;border-radius:4px;border:1px solid rgba(0,0,0,.25);box-sizing:content-box}
+</style>
+</head>
+<body>
+<div id="app">
+  <button id="burger">☰</button>
+  <aside id="side">
+    <header>
+      <h1>⚓ Wassersport-Karte <span class="badge" id="db-badge">DE</span></h1>
+      <p>Slipstellen, Wasserski- & Jetski-Bereiche, Häfen und Schifffahrtszeichen – lokal gespeichert, sofort durchsuchbar.</p>
+    </header>
+    <div class="scroll">
+
+      <div class="group">
+        <h2>Ort suchen</h2>
+        <div class="searchbox">
+          <input id="q" placeholder="Ort, See oder Adresse …" autocomplete="off">
+          <button id="go">➜</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2>Kartenebenen</h2>
+        <label class="layer"><input type="checkbox" id="ly-slip" checked>
+          <span class="dot" style="background:#3aa0ff"></span>
+          <span class="lab"><b>Slipstellen</b><span>Boote zu Wasser lassen / Rampen</span></span>
+          <span class="cnt" id="cnt-slip">–</span>
+        </label>
+        <label class="layer"><input type="checkbox" id="ly-ski" checked>
+          <span class="dot" style="background:#26d07c"></span>
+          <span class="lab"><b>Wasserski / Wakeboard</b><span>Anlagen & Lifte</span></span>
+          <span class="cnt" id="cnt-ski">–</span>
+        </label>
+        <label class="layer"><input type="checkbox" id="ly-jet" checked>
+          <span class="dot" style="background:#ff9f1c"></span>
+          <span class="lab"><b>Jetski / Wassermotorräder</b><span>erfasste Bereiche</span></span>
+          <span class="cnt" id="cnt-jet">–</span>
+        </label>
+        <label class="layer"><input type="checkbox" id="ly-harbor" checked>
+          <span class="dot" style="background:#b48cff"></span>
+          <span class="lab"><b>Häfen & Marinas</b><span>Sportboothäfen / Liegeplätze</span></span>
+          <span class="cnt" id="cnt-harbor">–</span>
+        </label>
+        <label class="layer"><input type="checkbox" id="ly-strk" checked>
+          <span class="dot" style="background:#2ec28a;box-shadow:0 0 0 2px #0e1b2a,0 0 0 4px #2ec28a"></span>
+          <span class="lab"><b>Amtl. Wasserski-Strecken</b><span>E.17 freigegeben · ungefähre Lage</span></span>
+          <span class="cnt" id="cnt-strk">–</span>
+        </label>
+        <label class="layer"><input type="checkbox" id="ly-km" checked>
+          <span class="dot" style="background:#fde89a"></span>
+          <span class="lab"><b>Fluss-Kilometer</b><span>km-Marken zum Abgleich (ab Zoom)</span></span>
+          <span class="cnt" id="cnt-km">–</span>
+        </label>
+        <label class="layer"><input type="checkbox" id="ly-wind" checked>
+          <span class="dot" style="background:#ff5db1"></span>
+          <span class="lab"><b>Windsurf-Verleih & -Schulen</b><span>Verleih, Surfschulen, Shops, Spots</span></span>
+          <span class="cnt" id="cnt-wind">–</span>
+        </label>
+        <label class="layer"><input type="checkbox" id="ly-sup" checked>
+          <span class="dot" style="background:#00c8c0"></span>
+          <span class="lab"><b>SUP-Verleih am Badesee</b><span>Verleih nur an Badestellen</span></span>
+          <span class="cnt" id="cnt-sup">–</span>
+        </label>
+        <label class="layer"><input type="checkbox" id="ly-mine" checked>
+          <span class="dot" style="background:#ffb02e"></span>
+          <span class="lab"><b>Meine Schilder</b><span>selbst eingetragen (lokal gespeichert)</span></span>
+          <span class="cnt" id="cnt-mine">–</span>
+        </label>
+        <button class="add" id="add-sign">➕ Schild an Stelle eintragen</button>
+        <button class="ghost" id="refresh-signs" style="display:none">🔄 Geteilte Schilder aktualisieren</button>
+        <button class="amt" id="open-strk">📋 Wasserski-Strecken auflisten (amtlich)</button>
+        <button class="ghost" id="locate">📍 Meinen Standort anzeigen</button>
+        <div class="status" id="status">Daten werden geladen …</div>
+      </div>
+
+      <div class="group">
+        <h2>Schifffahrtszeichen – Wassersport</h2>
+        <div id="signs"></div>
+        <p class="legend-note">
+          <b style="color:var(--warn)">Rot/weiß = Verbot</b> · <b style="color:var(--accent)">Blau = Erlaubnis</b>.
+          Wasserski & Jetski sind nur auf eigens <em>ausgewiesenen Strecken</em> (E.17 / E.22) erlaubt.
+          Tafel: <a href="https://de.wikipedia.org/wiki/Bildtafel_der_Binnenschifffahrtszeichen_in_Deutschland" target="_blank" rel="noopener">Wikipedia</a> ·
+          amtlich: <a href="https://www.elwis.de/DE/Schifffahrtsrecht/Binnenschifffahrtsrecht/BinSchStrO/Anlagen/Anlage-07/Anlage-07-node.html" target="_blank" rel="noopener">ELWIS Anlage 7</a>.
+        </p>
+      </div>
+
+      <div class="group">
+        <h2>Jetski-Bereiche – wichtiger Hinweis</h2>
+        <p class="legend-note">
+          Die amtlich für Wassermotorräder freigegebenen Flächen werden laut <b>WasMotRV</b> im <em>Verkehrsblatt</em>
+          veröffentlicht und stehen an den <b>E.22</b>-Schildern vor Ort – es gibt dafür <b>keinen offenen Geodatensatz</b>.
+          Deshalb sind hier nur die in OpenStreetMap erfassten Stellen sichtbar. Maßgeblich ist immer die Beschilderung
+          am Gewässer und die örtliche Befahrensregelung (<a href="https://www.elwis.de" target="_blank" rel="noopener">ELWIS</a>).
+        </p>
+        <p class="legend-note" id="meta"></p>
+      </div>
+    </div>
+  </aside>
+  <div id="map"></div>
+  <div class="addbanner" id="addbanner">🖱️ Klicke auf die Karte, wo das Schild steht … (Esc zum Abbrechen)</div>
+</div>
+
+<div class="modal-bg" id="pick-modal">
+  <div class="modal">
+    <h3>Welches Schild hast du gesehen? <button id="close-pick">✕</button></h3>
+    <div class="mbody">
+      <div class="searchbox" style="margin-bottom:12px">
+        <input id="pick-q" placeholder="Schild suchen (Name oder Code) …" autocomplete="off">
+      </div>
+      <div class="catfilter" id="catfilter">
+        <button class="catchip active" data-cat="Alle">Alle</button>
+        <button class="catchip" data-cat="Binnen">Binnen</button>
+        <button class="catchip" data-cat="See">See / IALA</button>
+      </div>
+      <p class="intro">Häufige Schilder stehen oben. Tippe auf das passende – es wird an der gewählten Stelle gesetzt.</p>
+      <div class="pickgrid" id="pickgrid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="strk-modal">
+  <div class="modal">
+    <h3>📋 Amtliche Wasserski-Strecken (E.17) <button id="close-strk">✕</button></h3>
+    <div class="mbody">
+      <p class="intro">
+        Diese Abschnitte sind amtlich für Wasserskilaufen freigegeben (Quelle: BMV/WSV &amp; ELWIS).
+        Die Punkte auf der Karte sind aus den Ortsbeschreibungen abgeleitet und <b>nur ungefähr</b> –
+        die genauen Anfangs-/Endpunkte stehen an den <b>E.17</b>-Schildern vor Ort.
+        <span class="chip a">ungefähr verortet</span> <span class="chip r">Region – noch recherchieren</span>
+      </p>
+      <div id="strk-list"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="data/spots.js"></script>
+<script src="data/wasserski_strecken.js"></script>
+<script src="data/kmmarks.js"></script>
+<script src="data/strecken_lines.js"></script>
+<script src="data/windsurf.js"></script>
+<script src="data/sup.js"></script>
+<script>
+/* ---------- Karte ---------- */
+const map = L.map('map',{zoomControl:true,preferCanvas:true}).setView([51.2,10.2],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19, attribution:'© OpenStreetMap-Mitwirkende (ODbL)'
+}).addTo(map);
+
+const colors = {slip:'#3aa0ff', ski:'#26d07c', jet:'#ff9f1c', harbor:'#b48cff'};
+const icons  = {slip:'🛥️', ski:'🎿', jet:'🌊', harbor:'⚓'};
+const labels = {slip:'Slipstelle', ski:'Wasserski / Wakeboard', jet:'Jetski-Bereich', harbor:'Hafen / Marina'};
+
+function makeIcon(kind){
+  return L.divIcon({className:'',
+    html:`<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+      background:${colors[kind]};border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.4);
+      display:flex;align-items:center;justify-content:center">
+      <span style="transform:rotate(45deg);font-size:14px">${icons[kind]}</span></div>`,
+    iconSize:[28,28], iconAnchor:[14,26], popupAnchor:[0,-24]});
+}
+function clusterGroup(kind){
+  return L.markerClusterGroup({
+    chunkedLoading:true, maxClusterRadius:50, spiderfyOnMaxZoom:true,
+    iconCreateFunction:c=>L.divIcon({
+      html:`<div style="background:${colors[kind]};color:#08121e;width:38px;height:38px;border-radius:50%;
+        display:flex;align-items:center;justify-content:center;font-weight:700;border:2px solid #fff;
+        box-shadow:0 2px 6px rgba(0,0,0,.4)">${c.getChildCount()}</div>`,
+      className:'', iconSize:[38,38]})
+  });
+}
+function popupHtml(kind,p,lat,lon){
+  const name = p.name || labels[kind];
+  let rows='';
+  for(const [k,l] of [['fee','Gebühr'],['surface','Belag'],['access','Zugang'],['operator','Betreiber'],['opening_hours','Zeiten'],['phone','Tel']])
+    if(p[k]) rows+=`<span class="pop-tag">${l}: ${p[k]}</span>`;
+  const web = p.website ? `<br><a class="pop-link" href="${p.website}" target="_blank" rel="noopener">🌐 Website</a>` : '';
+  const gmap=`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+  return `<b>${name}</b><br><span style="color:#9fb6cf;font-size:12px">${labels[kind]}</span><br>${rows}
+    <a class="pop-link" href="${gmap}" target="_blank" rel="noopener">🧭 Route hierher</a>${web}`;
+}
+
+/* ---------- Daten laden ---------- */
+const groups = {slip:clusterGroup('slip'), ski:clusterGroup('ski'), jet:clusterGroup('jet'), harbor:clusterGroup('harbor')};
+const counts = {slip:0, ski:0, jet:0, harbor:0};
+
+function loadData(){
+  if(typeof window.SPOTS==='undefined'){
+    setStatus('⚠️ Datendatei <code>data/spots.js</code> nicht gefunden. Bitte HTML und Ordner <b>data/</b> zusammen ablegen.');
+    return;
+  }
+  const fc = window.SPOTS;
+  for(const f of fc.features){
+    const k=f.properties.kind; if(!groups[k]) continue;
+    const [lon,lat]=f.geometry.coordinates;
+    const m=L.marker([lat,lon],{icon:makeIcon(k)}).bindPopup(()=>popupHtml(k,f.properties,lat,lon));
+    groups[k].addLayer(m); counts[k]++;
+  }
+  for(const k in groups) map.addLayer(groups[k]);
+  document.getElementById('cnt-slip').textContent=counts.slip;
+  document.getElementById('cnt-ski').textContent=counts.ski;
+  document.getElementById('cnt-jet').textContent=counts.jet;
+  document.getElementById('cnt-harbor').textContent=counts.harbor;
+  const total=counts.slip+counts.ski+counts.jet+counts.harbor;
+  setStatus(`✅ ${total.toLocaleString('de-DE')} Orte geladen. Sofort filter- und durchsuchbar.`);
+  const md=fc.metadata||{};
+  document.getElementById('meta').innerHTML=`Datenstand: <b>${md.generated||'?'}</b> · Quelle: ${md.source||'OSM'} · ${md.license||''}`;
+}
+
+/* ---------- Ebenen ein/aus ---------- */
+function bindLayer(id,kind){
+  document.getElementById(id).addEventListener('change',e=>{
+    if(e.target.checked) map.addLayer(groups[kind]); else map.removeLayer(groups[kind]);
+  });
+}
+bindLayer('ly-slip','slip'); bindLayer('ly-ski','ski'); bindLayer('ly-jet','jet'); bindLayer('ly-harbor','harbor');
+
+/* ---------- Ortssuche (Nominatim) ---------- */
+async function geocode(){
+  const q=document.getElementById('q').value.trim();
+  if(!q) return;
+  setStatus('🔎 Suche Ort …');
+  try{
+    const url=`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=de&q=${encodeURIComponent(q)}`;
+    const r=await fetch(url,{headers:{'Accept':'application/json'}});
+    const d=await r.json();
+    if(d.length){ map.setView([+d[0].lat,+d[0].lon],13); setStatus('📍 '+d[0].display_name.split(',').slice(0,3).join(', ')); }
+    else setStatus('Kein Ort gefunden – anders formulieren?');
+  }catch(e){ setStatus('Ortssuche nicht möglich (offline?). Tipp: Karte manuell zoomen.'); }
+}
+document.getElementById('go').addEventListener('click',geocode);
+document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')geocode();});
+
+/* ---------- Standort ---------- */
+document.getElementById('locate').addEventListener('click',()=>{
+  setStatus('📍 Standort wird ermittelt …');
+  if(!navigator.geolocation){ setStatus('Geolocation nicht verfügbar.'); return; }
+  navigator.geolocation.getCurrentPosition(p=>{
+    const ll=[p.coords.latitude,p.coords.longitude];
+    map.setView(ll,13);
+    L.circleMarker(ll,{radius:8,color:'#fff',weight:2,fillColor:'#3aa0ff',fillOpacity:1}).addTo(map).bindPopup('Dein Standort').openPopup();
+    setStatus('Standort gefunden.');
+  },()=>setStatus('Standort nicht ermittelbar (Berechtigung?).'),{enableHighAccuracy:true,timeout:10000});
+});
+
+function setStatus(t){document.getElementById('status').innerHTML=t;}
+document.getElementById('burger').addEventListener('click',()=>document.getElementById('side').classList.toggle('open'));
+map.on('click',()=>document.getElementById('side').classList.remove('open'));
+
+/* ---------- Schifffahrtszeichen (amtliche Abbildungen, BinSchStrO Anlage 7) ---------- */
+// Original-Grafiken aus Wikimedia Commons (gemeinfrei) unter data/signs/<code>.svg
+function signImg(code,size){return `<img class="signimg" src="data/signs/${code}.png" width="${size}" height="${size}" alt="${code}" loading="lazy" onerror="window.__signImgErr(this)">`;}
+window.__signImgErr=function(img){ if(!img.dataset.tried){ img.dataset.tried='1'; img.src='data/signs/'+img.alt+'.svg'; } else { window.__signFallback(img); } };
+window.__signFallback=function(img){const d=document.createElement('div');d.className='signfb';d.style.width=img.getAttribute('width')+'px';d.style.height=img.getAttribute('height')+'px';d.textContent=img.alt;img.replaceWith(d);};
+const SIGNS=[
+  {code:'E.17', name:'Wasserskistrecke', desc:'Wasserskilaufen hier erlaubt (ausgewiesener Bereich).'},
+  {code:'E.22', name:'Wassermotorräder erlaubt', desc:'Jetski/Wassermotorrad in diesem Bereich gestattet.'},
+  {code:'A.14', name:'Wasserski verboten', desc:'Wasserskilaufen ist verboten.'},
+  {code:'A.18', name:'Wassermotorräder verboten', desc:'Jetski/Wassermotorrad verboten.'},
+  {code:'A.1',  name:'Durchfahrt gesperrt', desc:'Verbot der Durchfahrt / Sperrung der Schifffahrt.'}
+];
+document.getElementById('signs').innerHTML=SIGNS.map(s=>`<div class="sign">${signImg(s.code,46)}<div class="meta"><b>${s.name}</b> <code>${s.code}</code><span>${s.desc}</span></div></div>`).join('');
+
+/* ---------- Amtliche Wasserski-Strecken (E.17) ---------- */
+const strkLayer = L.layerGroup();
+let strkFeatures = [];
+const lineKeys = {};   // "river|km" -> L.LatLngBounds (für „als Linie" + Fly-to)
+function keyOf(p){ return p.river+'|'+p.km; }
+function strkPopup(p){
+  const t = p.times ? `<br><span class="pop-tag">Zeiten: ${p.times}</span>` : '';
+  const u = p.url ? `<br><a class="pop-link" href="${p.url}" target="_blank" rel="noopener">ℹ️ Quelle / Details prüfen</a>` : '';
+  const warn = p.conf==='region'
+    ? 'Region mit freigegebenen Strecken – genaue Lage noch zu recherchieren.'
+    : p.conf==='line'
+    ? 'Streckenverlauf entlang des Flusses (aus km-Marken) – auf einige hundert Meter genau.'
+    : 'Ungefähre Lage – maßgeblich ist das E.17-Schild vor Ort.';
+  return `<b>Wasserski: ${p.river}</b><br>
+    <span style="color:#9fb6cf;font-size:12px">${p.km!=='—'?'km '+p.km+' · ':''}${p.land}</span><br>
+    ${p.desc}${t}<br><span style="color:#ffc987;font-size:11px">⚠️ ${warn}</span>${u}`;
+}
+function loadStrecken(){
+  if(typeof window.WS_STRECKEN==='undefined'){ document.getElementById('cnt-strk').textContent='0'; return; }
+  strkFeatures = window.WS_STRECKEN.features;
+  for(const f of strkFeatures){
+    const [lon,lat]=f.geometry.coordinates, p=f.properties;
+    let m;
+    if(p.conf==='region'){
+      m=L.circle([lat,lon],{radius:22000,color:'#ff9f1c',weight:1.5,dashArray:'5,5',fillColor:'#ff9f1c',fillOpacity:.06});
+    }else{
+      m=L.circleMarker([lat,lon],{radius:8,color:'#2ec28a',weight:2,dashArray:'3,3',fillColor:'#2ec28a',fillOpacity:.25});
+    }
+    m.bindPopup(()=>strkPopup(p)); m._p=p; m._ll=[lat,lon];
+    strkLayer.addLayer(m);
+  }
+  // Echte Strecken-Linien entlang des Flusslaufs (wo verfügbar)
+  if(typeof window.WS_LINES!=='undefined'){
+    for(const f of window.WS_LINES.features){
+      const latlngs=f.geometry.coordinates.map(c=>[c[1],c[0]]);
+      const pl=L.polyline(latlngs,{color:'#19e08a',weight:6,opacity:.9,lineCap:'round'});
+      pl.bindPopup(()=>strkPopup(Object.assign({conf:'line'},f.properties)));
+      strkLayer.addLayer(pl);
+      lineKeys[keyOf(f.properties)]=pl.getBounds();
+    }
+  }
+  map.addLayer(strkLayer);
+  document.getElementById('cnt-strk').textContent=strkFeatures.length;
+}
+document.getElementById('ly-strk').addEventListener('change',e=>{
+  if(e.target.checked) map.addLayer(strkLayer); else map.removeLayer(strkLayer);
+});
+
+/* Extra-Fenster (Liste nach Fluss/Region) */
+function buildList(){
+  const byRiver={};
+  strkFeatures.forEach((f,i)=>{ const r=f.properties.river; (byRiver[r]=byRiver[r]||[]).push(i); });
+  let html='';
+  for(const river in byRiver){
+    html+=`<div class="riv"><h4>${river}</h4>`;
+    for(const i of byRiver[river]){
+      const p=strkFeatures[i].properties;
+      const hasLine = lineKeys[keyOf(p)];
+      const chip = p.conf==='region'?'<span class="chip r">Region</span>'
+                 : hasLine?'<span class="chip a">📏 als Linie</span>'
+                 : '<span class="chip a">ungefähr</span>';
+      const km = p.km!=='—' ? `km ${p.km}` : '🔎';
+      html+=`<div class="strk" data-i="${i}">
+        <span class="km">${km}</span>
+        <span class="info"><b>${p.desc}</b>${chip}
+          <span>${p.land}${p.times?' · '+p.times:''}</span></span></div>`;
+    }
+    html+='</div>';
+  }
+  const list=document.getElementById('strk-list');
+  list.innerHTML=html;
+  list.querySelectorAll('.strk').forEach(el=>el.addEventListener('click',()=>{
+    const i=+el.dataset.i, f=strkFeatures[i], p=f.properties;
+    const [lon,lat]=f.geometry.coordinates;
+    closeModal();
+    if(!map.hasLayer(strkLayer)){ map.addLayer(strkLayer); document.getElementById('ly-strk').checked=true; }
+    const b=lineKeys[keyOf(p)];
+    if(b){ map.fitBounds(b,{padding:[60,60],maxZoom:15}); }
+    else { map.setView([lat,lon], p.conf==='region'?10:13); }
+    document.getElementById('side').classList.remove('open');
+  }));
+}
+function openModal(){ buildList(); document.getElementById('strk-modal').classList.add('open'); }
+function closeModal(){ document.getElementById('strk-modal').classList.remove('open'); }
+document.getElementById('open-strk').addEventListener('click',openModal);
+document.getElementById('close-strk').addEventListener('click',closeModal);
+document.getElementById('strk-modal').addEventListener('click',e=>{ if(e.target.id==='strk-modal') closeModal(); });
+
+/* ---------- Fluss-Kilometer-Marken ---------- */
+const kmLayer = L.layerGroup();
+const KM_MIN_ZOOM = 11;
+function loadKm(){
+  if(typeof window.KMMARKS==='undefined'){ document.getElementById('cnt-km').textContent='0'; return; }
+  for(const f of window.KMMARKS.features){
+    const [lon,lat]=f.geometry.coordinates;
+    const km=f.properties.km;
+    const label=(Number.isInteger(km)?km:km.toFixed(1)).toString();
+    const m=L.marker([lat,lon],{icon:L.divIcon({className:'',html:`<div class="kmmark">▸${label}</div>`,iconSize:[0,0],iconAnchor:[0,8]})});
+    m.bindPopup(`<b>Fluss-km ${label}</b>${f.properties.name?'<br>'+f.properties.name:''}`);
+    kmLayer.addLayer(m);
+  }
+  document.getElementById('cnt-km').textContent=window.KMMARKS.features.length;
+  updateKm();
+}
+function updateKm(){
+  const want=document.getElementById('ly-km').checked && map.getZoom()>=KM_MIN_ZOOM;
+  if(want){ if(!map.hasLayer(kmLayer)) map.addLayer(kmLayer); }
+  else if(map.hasLayer(kmLayer)) map.removeLayer(kmLayer);
+}
+map.on('zoomend', updateKm);
+document.getElementById('ly-km').addEventListener('change',()=>{
+  updateKm();
+  if(document.getElementById('ly-km').checked && map.getZoom()<KM_MIN_ZOOM)
+    setStatus('ℹ️ Fluss-Kilometer erscheinen ab näherem Zoom (Stadt-/Flussebene).');
+});
+
+/* ---------- Windsurf: Verleih / Schulen / Shops / Spots ---------- */
+const windGroup = L.markerClusterGroup({chunkedLoading:true, maxClusterRadius:50,
+  iconCreateFunction:c=>L.divIcon({html:`<div style="background:#ff5db1;color:#3a0022;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)">${c.getChildCount()}</div>`,className:'',iconSize:[38,38]})});
+function windIcon(rental){
+  return L.divIcon({className:'',
+    html:`<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+      background:#ff5db1;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.4);
+      display:flex;align-items:center;justify-content:center">
+      <span style="transform:rotate(45deg);font-size:14px">${rental?'🏄':'🌬️'}</span></div>`,
+    iconSize:[28,28], iconAnchor:[14,26], popupAnchor:[0,-24]});
+}
+function windPopup(p,lat,lon){
+  const name=p.name||'Windsurf-Spot';
+  const badge=p.rental?'<span class="pop-tag" style="color:#ff9ed6;border-color:#ff5db1">🏄 Verleih/Schule wahrscheinlich</span><br>':'';
+  let rows='';
+  if(p.sport) rows+=`<span class="pop-tag">Sport: ${p.sport}</span>`;
+  if(p.shop) rows+=`<span class="pop-tag">Shop: ${p.shop}</span>`;
+  if(p.phone) rows+=`<span class="pop-tag">Tel: ${p.phone}</span>`;
+  const web=p.website?`<br><a class="pop-link" href="${p.website}" target="_blank" rel="noopener">🌐 Website</a>`:'';
+  const gmap=`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+  return `<b>${name}</b><br>${badge}${rows}<a class="pop-link" href="${gmap}" target="_blank" rel="noopener">🧭 Route hierher</a>${web}`;
+}
+function loadWind(){
+  if(typeof window.WINDSURF==='undefined'){ document.getElementById('cnt-wind').textContent='0'; return; }
+  let n=0;
+  for(const f of window.WINDSURF.features){
+    const [lon,lat]=f.geometry.coordinates, p=f.properties;
+    windGroup.addLayer(L.marker([lat,lon],{icon:windIcon(p.rental)}).bindPopup(()=>windPopup(p,lat,lon)));
+    n++;
+  }
+  map.addLayer(windGroup);
+  document.getElementById('cnt-wind').textContent=n;
+}
+document.getElementById('ly-wind').addEventListener('change',e=>{
+  if(e.target.checked) map.addLayer(windGroup); else map.removeLayer(windGroup);
+});
+
+/* ---------- SUP-Verleih an Badestellen ---------- */
+const supGroup = L.markerClusterGroup({chunkedLoading:true, maxClusterRadius:50,
+  iconCreateFunction:c=>L.divIcon({html:`<div style="background:#00c8c0;color:#012a29;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)">${c.getChildCount()}</div>`,className:'',iconSize:[38,38]})});
+function supIcon(){
+  return L.divIcon({className:'',
+    html:`<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+      background:#00c8c0;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.4);
+      display:flex;align-items:center;justify-content:center">
+      <span style="transform:rotate(45deg);font-size:14px">🛶</span></div>`,
+    iconSize:[28,28], iconAnchor:[14,26], popupAnchor:[0,-24]});
+}
+function supPopup(p,lat,lon){
+  const name=p.name||(p.amenity==='boat_rental'?'Bootsverleih':'Verleih');
+  const tag=p.sup?'<span class="pop-tag" style="color:#7ff3ee;border-color:#00c8c0">🛶 SUP genannt</span>'
+                 :'<span class="pop-tag" style="color:#7ff3ee;border-color:#00c8c0">Verleih (SUP/Boot)</span>';
+  let rows='<span class="pop-tag">🏊 an Badestelle</span>';
+  if(p.amenity) rows+=`<span class="pop-tag">${p.amenity}</span>`;
+  if(p.phone) rows+=`<span class="pop-tag">Tel: ${p.phone}</span>`;
+  const web=p.website?`<br><a class="pop-link" href="${p.website}" target="_blank" rel="noopener">🌐 Website</a>`:'';
+  const gmap=`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+  return `<b>${name}</b><br>${tag}<br>${rows}<br><a class="pop-link" href="${gmap}" target="_blank" rel="noopener">🧭 Route hierher</a>${web}`;
+}
+function loadSup(){
+  if(typeof window.SUP==='undefined'){ document.getElementById('cnt-sup').textContent='0'; return; }
+  let n=0;
+  for(const f of window.SUP.features){
+    const [lon,lat]=f.geometry.coordinates, p=f.properties;
+    supGroup.addLayer(L.marker([lat,lon],{icon:supIcon()}).bindPopup(()=>supPopup(p,lat,lon)));
+    n++;
+  }
+  map.addLayer(supGroup);
+  document.getElementById('cnt-sup').textContent=n;
+}
+document.getElementById('ly-sup').addEventListener('change',e=>{
+  if(e.target.checked) map.addLayer(supGroup); else map.removeLayer(supGroup);
+});
+
+/* ============ Eigene Wasserstraßenschilder eintragen ============ */
+// Schild-Bild (amtliche Grafik); buildSign nutzt dieselbe Quelle wie die Referenz
+function buildSign(e,s){return signImg(e.code,s);}
+
+// Katalog – amtliche Codes (BinSchStrO Anlage 7); freq = grobe Häufigkeit (höher = häufiger)
+const SIGN_CATALOG=[
+  {code:'B.6', name:'Geschwindigkeit begrenzt (km/h)', tag:'B.6', cat:'Binnen', freq:96},
+  {code:'A.1', name:'Durchfahrt gesperrt / Schifffahrt gesperrt', tag:'A.1', cat:'Binnen', freq:90},
+  {code:'C.1', name:'Fahrwassertiefe begrenzt', tag:'C.1', cat:'Binnen', freq:80},
+  {code:'A.6', name:'Ankern verboten', tag:'A.6', cat:'Binnen', freq:78},
+  {code:'A.9', name:'Wellenschlag/Sog vermeiden', tag:'A.9', cat:'Binnen', freq:74},
+  {code:'A.5', name:'Stillliegen verboten', tag:'A.5', cat:'Binnen', freq:70},
+  {code:'SEE.STB', name:'Steuerbordseite (grün) – Lateralzeichen', tag:'Steuerbord', cat:'See', freq:70},
+  {code:'SEE.BB', name:'Backbordseite (rot) – Lateralzeichen', tag:'Backbord', cat:'See', freq:69},
+  {code:'A.7', name:'Festmachen verboten', tag:'A.7', cat:'Binnen', freq:68},
+  {code:'C.2', name:'Durchfahrtshöhe begrenzt', tag:'C.2', cat:'Binnen', freq:66},
+  {code:'E.5', name:'Liegestelle erlaubt', tag:'E.5', cat:'Binnen', freq:64},
+  {code:'B.5', name:'Anhalten (unter Bedingungen)', tag:'B.5', cat:'Binnen', freq:63},
+  {code:'A.13', name:'Fahrverbot für Sportboote', tag:'A.13', cat:'Binnen', freq:62},
+  {code:'A.11', name:'Verbot der Einfahrt', tag:'A.11', cat:'Binnen', freq:60},
+  {code:'B.1', name:'Vorgeschriebene Fahrtrichtung', tag:'B.1', cat:'Binnen', freq:60},
+  {code:'A.14', name:'Wasserski verboten', tag:'A.14', cat:'Binnen', freq:58},
+  {code:'A.2', name:'Überholverbot (allgemein)', tag:'A.2', cat:'Binnen', freq:56},
+  {code:'A.18', name:'Wassermotorräder (Jetski) verboten', tag:'A.18', cat:'Binnen', freq:56},
+  {code:'SEE.N', name:'Nord-Kardinalzeichen', tag:'Nord', cat:'See', freq:56},
+  {code:'C.3', name:'Durchfahrtsbreite begrenzt', tag:'C.3', cat:'Binnen', freq:55},
+  {code:'SEE.O', name:'Ost-Kardinalzeichen', tag:'Ost', cat:'See', freq:55},
+  {code:'E.1', name:'Durchfahrt gestattet', tag:'E.1', cat:'Binnen', freq:54},
+  {code:'SEE.S', name:'Süd-Kardinalzeichen', tag:'Süd', cat:'See', freq:54},
+  {code:'SEE.W', name:'West-Kardinalzeichen', tag:'West', cat:'See', freq:53},
+  {code:'E.6', name:'Ankern erlaubt', tag:'E.6', cat:'Binnen', freq:52},
+  {code:'A.12', name:'Verbot für Maschinenfahrzeuge', tag:'A.12', cat:'Binnen', freq:50},
+  {code:'B.8', name:'Besondere Vorsicht', tag:'B.8', cat:'Binnen', freq:50},
+  {code:'E.7', name:'Festmachen erlaubt', tag:'E.7', cat:'Binnen', freq:50},
+  {code:'E.26', name:'Bade-/Schwimmverbot (Hinweis)', tag:'E.26', cat:'Binnen', freq:50},
+  {code:'SEE.STBA', name:'Steuerbord-Abzweig (bevorzugtes Fahrwasser)', tag:'Abzweig', cat:'See', freq:50},
+  {code:'C.4', name:'Es bestehen Schifffahrtsbeschränkungen; sie sind auf einer zusätzlichen Ta…', tag:'C.4', cat:'Binnen', freq:49},
+  {code:'SEE.BBA', name:'Backbord-Abzweig (bevorzugtes Fahrwasser)', tag:'Abzweig', cat:'See', freq:49},
+  {code:'B.7', name:'Schallzeichen geben', tag:'B.7', cat:'Binnen', freq:48},
+  {code:'E.17', name:'Wasserskistrecke (erlaubt)', tag:'E.17', cat:'Binnen', freq:48},
+  {code:'SEE.SW', name:'Sicheres Fahrwasser (Mitte-Fahrwasser)', tag:'Mitte', cat:'See', freq:48},
+  {code:'E.8', name:'Wendestelle', tag:'E.8', cat:'Binnen', freq:46},
+  {code:'E.11', name:'Ende eines Verbots/Gebots', tag:'E.11', cat:'Binnen', freq:46},
+  {code:'A.8', name:'Wendeverbot', tag:'A.8', cat:'Binnen', freq:44},
+  {code:'E.3', name:'Hinweis auf ein Wehr', tag:'E.3', cat:'Binnen', freq:44},
+  {code:'E.22', name:'Wassermotorräder erlaubt (Jetski)', tag:'E.22', cat:'Binnen', freq:44},
+  {code:'SEE.ID', name:'Einzelgefahrenstelle', tag:'Gefahr', cat:'See', freq:44},
+  {code:'A.10', name:'Verbot, außerhalb der angezeigten Begrenzung zu fahren', tag:'A.10', cat:'Binnen', freq:42},
+  {code:'D.1', name:'Empfohlene Durchfahrtsöffnung für Verkehr in beide Richtungen', tag:'D.1', cat:'Binnen', freq:42},
+  {code:'A.1a', name:'Gesperrte Wasserfläche', tag:'A.1a', cat:'Binnen', freq:40},
+  {code:'A.4', name:'Verbot des Begegnens und Überholens', tag:'A.4', cat:'Binnen', freq:40},
+  {code:'A.15', name:'Fahrverbot für Segelfahrzeuge', tag:'A.15', cat:'Binnen', freq:40},
+  {code:'B.11a', name:'Sprechfunk benutzen', tag:'B.11a', cat:'Binnen', freq:40},
+  {code:'D.3', name:'Empfehlung, in die Richtung des Pfeils zu fahren', tag:'D.3', cat:'Binnen', freq:40},
+  {code:'A.17', name:'Segelsurfen verboten', tag:'A.17', cat:'Binnen', freq:39},
+  {code:'E.4a', name:'Nicht frei fahrende Fähre', tag:'E.4a', cat:'Binnen', freq:38},
+  {code:'E.4b', name:'Frei fahrende Fähre', tag:'E.4b', cat:'Binnen', freq:38},
+  {code:'E.15', name:'Maschinenfahrzeuge erlaubt', tag:'E.15', cat:'Binnen', freq:38},
+  {code:'E.16', name:'Sportboote erlaubt', tag:'E.16', cat:'Binnen', freq:37},
+  {code:'D.2', name:'Empfehlung, sich in dem durch die Tafeln begrenzten Raum zu halten', tag:'D.2', cat:'Binnen', freq:36},
+  {code:'E.2', name:'Hochspannungsleitung', tag:'E.2', cat:'Binnen', freq:36},
+  {code:'E.18', name:'Segelfahrzeuge erlaubt', tag:'E.18', cat:'Binnen', freq:36},
+  {code:'E.20', name:'Segelsurfen erlaubt', tag:'E.20', cat:'Binnen', freq:35},
+  {code:'A.16', name:'Fahrverbot (weder Maschine noch Segel)', tag:'A.16', cat:'Binnen', freq:34},
+  {code:'B.3a', name:'Gebot, die Fahrwasserseite zu halten, die auf der Backbordseite des Fahrze…', tag:'B.3a', cat:'Binnen', freq:34},
+  {code:'B.3b', name:'Gebot, die Fahrwasserseite zu halten, die auf der Steuerbordseite des Fahr…', tag:'B.3b', cat:'Binnen', freq:34},
+  {code:'E.13', name:'Trinkwasserzapfstelle', tag:'E.13', cat:'Binnen', freq:34},
+  {code:'E.24', name:'Kitesurfstrecke (erlaubt)', tag:'E.24', cat:'Binnen', freq:33},
+  {code:'B.17', name:'Festmachetonne', tag:'B.17', cat:'Binnen', freq:32},
+  {code:'A.3', name:'Überholverbot für Verbände untereinander und zwischen einem Verband und ge…', tag:'A.3', cat:'Binnen', freq:30},
+  {code:'B.2a', name:'Gebot, auf die Fahrwasserseite hinüberzufahren, die auf der Backbordseite…', tag:'B.2a', cat:'Binnen', freq:30},
+  {code:'B.2b', name:'Gebot, auf die Fahrwasserseite hinüberzufahren, die auf der Steuerbordseit…', tag:'B.2b', cat:'Binnen', freq:30},
+  {code:'B.11b', name:'Gebot, Sprechfunk auf dem angegebenen Kanal zu benutzen', tag:'B.11b', cat:'Binnen', freq:30},
+  {code:'B.12', name:'Gebot, Nutzung von Landstromanschlüssen', tag:'B.12', cat:'Binnen', freq:30},
+  {code:'E.14', name:'Fernsprechstelle', tag:'E.14', cat:'Binnen', freq:30},
+  {code:'E.21', name:'Nautischer Informationsfunk, im Beispiel Kanal 18', tag:'E.21', cat:'Binnen', freq:30},
+  {code:'B.16', name:'Besondere Gebiete und Stellen', tag:'B.16', cat:'Binnen', freq:30},
+  {code:'B.4a', name:'Gebot, das Fahrwasser nach Backbord zu überqueren', tag:'B.4a', cat:'Binnen', freq:28},
+  {code:'B.4', name:'b Gebot, das Fahrwasser nach Steuerbord zu überqueren', tag:'B.4', cat:'Binnen', freq:28},
+  {code:'E.25', name:'Landstromanschluss vorhanden', tag:'E.25', cat:'Binnen', freq:28},
+  {code:'B.9a', name:'Gebot, nur dann in die Hauptwasserstraße einzufahren oder sie zu überquere…', tag:'B.9a', cat:'Binnen', freq:26},
+  {code:'B.9b', name:'Gebot wie B.9a', tag:'B.9b', cat:'Binnen', freq:26},
+  {code:'E.19', name:'Fahrerlaubnis für ein Fahrzeug, das weder mit Maschinenantrieb noch unter…', tag:'E.19', cat:'Binnen', freq:26},
+  {code:'A.5.1', name:'Stillliegeverbot auf der Wasserfläche, deren Breite, gemessen vom Aufstell…', tag:'A.5.1', cat:'Binnen', freq:24},
+  {code:'D.1b', name:'Empfohlene Durchfahrtsöffnung für Verkehr nur in Richtung, in der die Zeic…', tag:'D.1b', cat:'Binnen', freq:24},
+  {code:'E.7.1', name:'Erlaubnis zum Festmachen am Ufer für das sofortige Ein- oder Ausladen eine…', tag:'E.7.1', cat:'Binnen', freq:24},
+  {code:'E.9a', name:'Die benutzte Hauptwasserstraße trifft auf eine von beiden Seiten einmünden…', tag:'E.9a', cat:'Binnen', freq:24},
+  {code:'E.9b', name:'Die benutzte Hauptwasserstraße trifft auf eine von Steuerbord einmündende…', tag:'E.9b', cat:'Binnen', freq:24},
+  {code:'E.10a', name:'Die benutzte Nebenwasserstraße trifft auf eine von beiden Seiten einmünden…', tag:'E.10a', cat:'Binnen', freq:24},
+  {code:'E.10b', name:'Die benutzte Nebenwasserstraße mündet in eine Hauptwasserstraße ein', tag:'E.10b', cat:'Binnen', freq:24},
+  {code:'B.14a', name:'Allgemeine Reeden', tag:'B.14a', cat:'Binnen', freq:22},
+  {code:'B.15a', name:'Nord-Kardinal-Zeichen: Funkelfeuer mit dauerndem Funkel', tag:'B.15a', cat:'Binnen', freq:22},
+  {code:'B.15b', name:'Ost-Kardinal-Zeichen: Funkelfeuer mit Gruppen von 3 Funkeln', tag:'B.15b', cat:'Binnen', freq:22},
+  {code:'B.14b', name:'Reeden für Fahrzeuge, die bestimmte gefährliche Güter befördern', tag:'B.14b', cat:'Binnen', freq:20},
+];
+const findSign=code=>SIGN_CATALOG.find(s=>s.code===code);
+
+// ===== Geteilte Daten – Supabase (optional) =====
+// Trage hier URL + anon-Key deines Supabase-Projekts ein (siehe SETUP.md).
+// Solange leer, werden Schilder NUR lokal auf diesem Gerät gespeichert.
+const SUPABASE_URL = 'https://ewatnzettnevnwlpjqdl.supabase.co';   // z.B. 'https://xxxx.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_QG4h8ExPuYZevGDUu5odnQ_-Uz0PFaN';   // anon / publishable key
+const SHARED = !!(SUPABASE_URL && SUPABASE_KEY);
+const SB_HEAD = SHARED ? {apikey:SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'} : null;
+let signAuthor = localStorage.getItem('signAuthor') || '';
+function ensureAuthor(){
+  if(!signAuthor){
+    signAuthor=((prompt('Dein Name/Kürzel (erscheint bei deinen Schildern):','')||'').trim().slice(0,24))||'anonym';
+    localStorage.setItem('signAuthor',signAuthor);
+  }
+  return signAuthor;
+}
+
+let userSigns = SHARED ? [] : JSON.parse(localStorage.getItem('userSigns')||'[]');
+let signUsage = JSON.parse(localStorage.getItem('signUsage')||'{}');
+function saveSigns(){ if(!SHARED) localStorage.setItem('userSigns',JSON.stringify(userSigns)); localStorage.setItem('signUsage',JSON.stringify(signUsage)); }
+
+async function loadSharedSigns(quiet){
+  if(!SHARED) return;
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/signs?select=*&order=ts.asc`,{headers:SB_HEAD});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    userSigns=await r.json(); renderUserSigns();
+    if(!quiet) setStatus(`✅ ${userSigns.length} geteilte Schilder geladen.`);
+  }catch(e){ setStatus('⚠️ Geteilte Schilder nicht ladbar: '+e.message); }
+}
+
+const userSignLayer=L.layerGroup();
+function signMarkerIcon(code,sz){sz=sz||32;return L.divIcon({className:'',html:`<div class="usericon" style="width:${sz}px;height:${sz}px">${signImg(code,sz)}</div>`,iconSize:[sz+2,sz+2],iconAnchor:[(sz+2)/2,(sz+2)/2],popupAnchor:[0,-(sz+2)/2]});}
+function renderUserSigns(){
+  userSignLayer.clearLayers();
+  userSigns.forEach((s,idx)=>{
+    const e=findSign(s.code); if(!e) return;
+    const own = !SHARED || (s.author||'')===signAuthor;
+    const by = (SHARED && s.author) ? ` · <b>${s.author}</b>` : '';
+    const del = own ? `<br><button onclick="window.__delSign(${idx})" style="margin-top:8px;background:#c62828;color:#fff;border:0;border-radius:7px;padding:6px 11px;cursor:pointer">🗑 löschen</button>` : '';
+    L.marker([s.lat,s.lon],{icon:signMarkerIcon(s.code,34)})
+      .bindPopup(`<div style="text-align:center">${buildSign(e,52)}</div><b>${e.name}</b> <code style="color:var(--accent)">${e.tag||e.code}</code><br><span style="color:#9fb6cf;font-size:11px">${new Date(s.ts).toLocaleDateString('de-DE')}${by}</span>${del}`)
+      .addTo(userSignLayer);
+  });
+  document.getElementById('cnt-mine').textContent=userSigns.length;
+}
+window.__delSign=async function(i){
+  const s=userSigns[i]; if(!s) return;
+  if(SHARED){
+    if((s.author||'')!==signAuthor){ setStatus('Nur eigene Schilder können gelöscht werden.'); return; }
+    try{ const r=await fetch(`${SUPABASE_URL}/rest/v1/signs?id=eq.${s.id}`,{method:'DELETE',headers:SB_HEAD}); if(!r.ok) throw new Error('HTTP '+r.status); }
+    catch(e){ setStatus('⚠️ Löschen fehlgeschlagen: '+e.message); return; }
+  }
+  userSigns.splice(i,1); saveSigns(); renderUserSigns(); map.closePopup();
+};
+document.getElementById('ly-mine').addEventListener('change',e=>{ if(e.target.checked)map.addLayer(userSignLayer); else map.removeLayer(userSignLayer); });
+
+// Eintrag-Modus
+let addMode=false, pendingLatLng=null;
+function setAddMode(on){
+  addMode=on; pendingLatLng=null;
+  const btn=document.getElementById('add-sign');
+  btn.classList.toggle('active',on);
+  btn.textContent= on?'✖ Eintragen abbrechen':'➕ Schild an Stelle eintragen';
+  document.getElementById('addbanner').classList.toggle('show',on);
+  document.getElementById('map').classList.toggle('addmode',on);
+  if(on) document.getElementById('side').classList.remove('open'); // auf dem Handy Karte freigeben
+}
+document.getElementById('add-sign').addEventListener('click',()=>setAddMode(!addMode));
+map.on('click',e=>{ if(addMode){ pendingLatLng=e.latlng; addMode=false; document.getElementById('add-sign').classList.remove('active'); document.getElementById('add-sign').textContent='➕ Schild an Stelle eintragen'; document.getElementById('addbanner').classList.remove('show'); document.getElementById('map').classList.remove('addmode'); openPick(); }});
+
+// Auswahlfenster (häufigste oben + eigene Nutzung; Kategorie-Filter)
+let pickCat='Alle';
+function sortedCatalog(filter){
+  let arr=SIGN_CATALOG.slice();
+  if(pickCat!=='Alle') arr=arr.filter(s=>s.cat===pickCat);
+  if(filter){ const f=filter.toLowerCase(); arr=arr.filter(s=>s.name.toLowerCase().includes(f)||s.code.toLowerCase().includes(f)||(s.tag||'').toLowerCase().includes(f)); }
+  arr.sort((a,b)=>((signUsage[b.code]||0)*1000+b.freq)-((signUsage[a.code]||0)*1000+a.freq));
+  return arr;
+}
+function renderPick(filter){
+  const g=document.getElementById('pickgrid');
+  g.innerHTML=sortedCatalog(filter).map(s=>{
+    const used=signUsage[s.code]?` <small>×${signUsage[s.code]}</small>`:'';
+    return `<div class="pcard" data-code="${s.code}">${buildSign(s,40)}<div class="pi"><b>${s.name}</b><code>${s.tag||s.code}</code>${used}</div></div>`;
+  }).join('');
+  g.querySelectorAll('.pcard').forEach(el=>el.addEventListener('click',()=>placeSign(el.dataset.code)));
+}
+document.querySelectorAll('#catfilter .catchip').forEach(ch=>ch.addEventListener('click',()=>{
+  pickCat=ch.dataset.cat;
+  document.querySelectorAll('#catfilter .catchip').forEach(c=>c.classList.toggle('active',c===ch));
+  renderPick(document.getElementById('pick-q').value);
+}));
+function openPick(){ document.getElementById('pick-q').value=''; renderPick(''); document.getElementById('pick-modal').classList.add('open'); }
+function closePick(){ document.getElementById('pick-modal').classList.remove('open'); pendingLatLng=null; }
+document.getElementById('close-pick').addEventListener('click',closePick);
+document.getElementById('pick-modal').addEventListener('click',e=>{ if(e.target.id==='pick-modal') closePick(); });
+document.getElementById('pick-q').addEventListener('input',e=>renderPick(e.target.value));
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(addMode)setAddMode(false); closePick(); }});
+
+async function placeSign(code){
+  if(!pendingLatLng) return;
+  const rec={lat:pendingLatLng.lat, lon:pendingLatLng.lng, code, ts:Date.now()};
+  signUsage[code]=(signUsage[code]||0)+1; saveSigns();
+  if(SHARED){
+    rec.author=ensureAuthor();
+    try{
+      const r=await fetch(`${SUPABASE_URL}/rest/v1/signs`,{method:'POST',headers:{...SB_HEAD,'Prefer':'return=representation'},body:JSON.stringify(rec)});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const rows=await r.json(); userSigns.push(rows[0]||rec);
+    }catch(e){ setStatus('⚠️ Speichern fehlgeschlagen: '+e.message); closePick(); return; }
+  } else {
+    userSigns.push(rec); saveSigns();
+  }
+  renderUserSigns();
+  if(!map.hasLayer(userSignLayer)){ map.addLayer(userSignLayer); document.getElementById('ly-mine').checked=true; }
+  closePick();
+  setStatus(`✅ „${findSign(code).name}" gesetzt.${SHARED?' (geteilt)':''} Gesamt: ${userSigns.length}.`);
+}
+
+map.addLayer(userSignLayer);
+if(SHARED){
+  document.querySelector('#ly-mine .lab b').textContent='Eingetragene Schilder';
+  document.querySelector('#ly-mine .lab span').textContent='geteilt – von dir & Freunden';
+  const rb=document.getElementById('refresh-signs'); rb.style.display='block';
+  rb.addEventListener('click',()=>loadSharedSigns(false));
+  loadSharedSigns(true);
+  setInterval(()=>loadSharedSigns(true), 30000); // alle 30 s aktualisieren
+} else {
+  renderUserSigns();
+}
+
+loadData();
+loadStrecken();
+loadKm();
+loadWind();
+loadSup();
+</script>
+</body>
+</html>

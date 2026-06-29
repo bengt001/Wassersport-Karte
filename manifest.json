@@ -1,0 +1,16 @@
+{
+  "name": "Wassersport-Karte Deutschland",
+  "short_name": "Wassersport",
+  "description": "Slipstellen, Wasserski- & Jetski-Strecken, Häfen, Windsurf-/SUP-Verleih und Schifffahrtszeichen – zum Eintragen und Teilen.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0e1b2a",
+  "theme_color": "#0e1b2a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "data/signs/E.17.png", "sizes": "320x320", "type": "image/png" }
+  ]
+}
