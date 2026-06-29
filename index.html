@@ -71,7 +71,7 @@
     .modal{width:100%;max-width:100%;max-height:90vh;border-radius:16px 16px 0 0;padding-bottom:env(safe-area-inset-bottom)}
     .modal h3{font-size:15px;padding:14px}
     .pickgrid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
-    .addbanner{top:max(10px,env(safe-area-inset-top));font-size:12px;padding:8px 14px;width:max-content;max-width:92vw;text-align:center}
+    .addbanner{left:70px;right:10px;transform:none;top:max(10px,env(safe-area-inset-top));font-size:12px;padding:6px 6px 6px 12px;width:auto;max-width:none;justify-content:space-between;text-align:left}
     #q,.searchbox input{font-size:16px}/* >=16px verhindert Auto-Zoom auf iOS */
     .pick-q,#pick-q{font-size:16px}
   }
@@ -102,8 +102,10 @@
   button.add{width:100%;background:linear-gradient(180deg,#ffb02e,#e08a00);color:#3a2400;border:0;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px}
   button.add:hover{filter:brightness(1.06)}
   button.add.active{background:linear-gradient(180deg,#ff5a5a,#c62828);color:#fff}
-  .addbanner{position:absolute;z-index:1150;top:12px;left:50%;transform:translateX(-50%);background:#c62828;color:#fff;padding:9px 16px;border-radius:20px;font-size:13px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.4);display:none}
-  .addbanner.show{display:block}
+  .addbanner{position:absolute;z-index:1150;top:12px;left:50%;transform:translateX(-50%);background:#c62828;color:#fff;padding:7px 7px 7px 16px;border-radius:24px;font-size:13px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.4);display:none;align-items:center;gap:10px}
+  .addbanner.show{display:flex}
+  .addbanner button{background:#fff;color:#c62828;border:0;border-radius:18px;padding:7px 13px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex:0 0 auto}
+  .addbanner button:hover{background:#ffe3e3}
   .pickgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
   .pcard{display:flex;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:7px 8px;cursor:pointer;overflow:hidden}
   .pcard:hover{border-color:var(--accent);background:#214064}
@@ -220,7 +222,7 @@
     </div>
   </aside>
   <div id="map"></div>
-  <div class="addbanner" id="addbanner">🖱️ Klicke auf die Karte, wo das Schild steht … (Esc zum Abbrechen)</div>
+  <div class="addbanner" id="addbanner"><span>🖱️ Tippe auf die Karte, wo das Schild steht</span><button id="cancel-add" type="button">✖ Abbrechen</button></div>
 </div>
 
 <div class="modal-bg" id="pick-modal">
@@ -740,6 +742,7 @@ function setAddMode(on){
   if(on) document.getElementById('side').classList.remove('open'); // auf dem Handy Karte freigeben
 }
 document.getElementById('add-sign').addEventListener('click',()=>setAddMode(!addMode));
+document.getElementById('cancel-add').addEventListener('click',()=>setAddMode(false));
 map.on('click',e=>{ if(addMode){ pendingLatLng=e.latlng; addMode=false; document.getElementById('add-sign').classList.remove('active'); document.getElementById('add-sign').textContent='➕ Schild an Stelle eintragen'; document.getElementById('addbanner').classList.remove('show'); document.getElementById('map').classList.remove('addmode'); openPick(); }});
 
 // Auswahlfenster (häufigste oben + eigene Nutzung; Kategorie-Filter)
