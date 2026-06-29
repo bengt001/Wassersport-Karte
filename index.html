@@ -791,23 +791,27 @@ async function placeSign(code){
   setStatus(`✅ „${findSign(code).name}" gesetzt.${SHARED?' (geteilt)':''} Gesamt: ${userSigns.length}.`);
 }
 
-map.addLayer(userSignLayer);
-if(SHARED){
-  document.querySelector('#ly-mine .lab b').textContent='Eingetragene Schilder';
-  document.querySelector('#ly-mine .lab span').textContent='geteilt – von dir & Freunden';
-  const rb=document.getElementById('refresh-signs'); rb.style.display='block';
-  rb.addEventListener('click',()=>loadSharedSigns(false));
-  loadSharedSigns(true);
-  setInterval(()=>loadSharedSigns(true), 30000); // alle 30 s aktualisieren
-} else {
-  renderUserSigns();
-}
-
+// Karten-Daten zuerst laden – robust, unabhängig vom Schilder-Teil
 loadData();
 loadStrecken();
 loadKm();
 loadWind();
 loadSup();
+
+map.addLayer(userSignLayer);
+try {
+  if(SHARED){
+    const lab=document.getElementById('ly-mine').closest('.layer');
+    if(lab){ lab.querySelector('.lab b').textContent='Eingetragene Schilder';
+             lab.querySelector('.lab span').textContent='geteilt – von dir & Freunden'; }
+    const rb=document.getElementById('refresh-signs');
+    if(rb){ rb.style.display='block'; rb.addEventListener('click',()=>loadSharedSigns(false)); }
+    loadSharedSigns(true);
+    setInterval(()=>loadSharedSigns(true), 30000); // alle 30 s aktualisieren
+  } else {
+    renderUserSigns();
+  }
+} catch(err){ console.error('Schilder-Init:', err); setStatus('Hinweis: Schilder-Sync nicht initialisiert – Karte funktioniert.'); }
 </script>
 </body>
 </html>
