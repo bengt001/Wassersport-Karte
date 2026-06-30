@@ -404,22 +404,46 @@ function setMapMode(mode){
   document.querySelectorAll('#mapstyle .catchip').forEach(c=>c.addEventListener('click',()=>setMapMode(c.dataset.style)));
 })();
 
-/* ===== Kommentare / Notizen zu Punkten (lokal gespeichert) ===== */
-let spotNotes = JSON.parse(localStorage.getItem('spotNotes')||'{}');
-function saveNotes(){ localStorage.setItem('spotNotes',JSON.stringify(spotNotes)); }
+/* ===== Kommentare / Notizen zu Punkten (lokal ODER geteilt) ===== */
+let spotNotes = JSON.parse(localStorage.getItem('spotNotes')||'{}'); // lokaler Fallback (key -> text)
+let spotNoteList = [];                                              // geteilte Kommentare (Supabase entries)
+function saveNotes(){ if(!SHARED) localStorage.setItem('spotNotes',JSON.stringify(spotNotes)); }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function noteFor(k){ return spotNotes[k]||''; }
+function refreshOpenPopup(){ closeDetail(); map.closePopup(); if(window.__lastSource){ try{ window.__lastSource.openPopup(); }catch(_){ } } }
+function noteCard(text,extra){ return `<div style="margin-top:8px;padding:7px 9px;background:rgba(70,200,230,.1);border:1px solid rgba(70,200,230,.3);border-radius:8px;font-size:12px;line-height:1.45;color:#cfe2f7;white-space:pre-wrap">📝 ${escapeHtml(text)}${extra||''}</div>`; }
 function noteBlock(k){
-  const n=noteFor(k);
-  const shown=n?`<div style="margin-top:8px;padding:7px 9px;background:rgba(70,200,230,.1);border:1px solid rgba(70,200,230,.3);border-radius:8px;font-size:12px;line-height:1.45;color:#cfe2f7;white-space:pre-wrap">📝 ${escapeHtml(n)}</div>`:'';
-  return `${shown}<br><button onclick="window.__editNote('${k}')" style="margin-top:6px;background:#232932;color:#cdd4dd;border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:12px">✏️ ${n?'Kommentar bearbeiten':'Kommentar hinzufügen'}</button>`;
+  let html='';
+  if(SHARED){
+    for(const n of spotNoteList){ if(n.key!==k) continue;
+      const who=n.author?` <span style="color:#79828f">– ${escapeHtml(n.author)}</span>`:'';
+      const d=((n.author||'')===signAuthor)?` <a href="#" onclick="window.__delNote(${n.id});return false" style="color:#ef6a5a">löschen</a>`:'';
+      html+=noteCard(n.text, who+d);
+    }
+  } else {
+    const n=noteFor(k); if(n) html=noteCard(n);
+  }
+  const label = SHARED ? 'Kommentar hinzufügen' : (noteFor(k)?'Kommentar bearbeiten':'Kommentar hinzufügen');
+  return `${html}<br><button onclick="window.__addNote('${k}')" style="margin-top:6px;background:#232932;color:#cdd4dd;border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:12px">✏️ ${label}</button>`;
 }
-window.__editNote=function(k){
-  const t=prompt('Kommentar / fehlende Infos zu diesem Punkt:', noteFor(k));
+window.__addNote=async function(k){
+  const t=prompt('Kommentar / fehlende Infos zu diesem Punkt:', SHARED?'':noteFor(k));
   if(t===null) return;
-  if(t.trim()) spotNotes[k]=t.trim(); else delete spotNotes[k];
-  saveNotes(); closeDetail(); map.closePopup();
-  if(window.__lastSource){ try{ window.__lastSource.openPopup(); }catch(_){ } }
+  if(SHARED){
+    if(!t.trim()) return;
+    try{ const row=await sbPost('note',{key:k,text:t.trim()}); spotNoteList.push(sbRow(row)); }
+    catch(e){ setStatus('⚠️ Kommentar speichern fehlgeschlagen: '+e.message); return; }
+  } else {
+    if(t.trim()) spotNotes[k]=t.trim(); else delete spotNotes[k];
+    saveNotes();
+  }
+  refreshOpenPopup();
+};
+window.__delNote=async function(id){
+  const n=spotNoteList.find(x=>x.id===id); if(!n) return;
+  if((n.author||'')!==signAuthor){ setStatus('Nur eigene Kommentare können gelöscht werden.'); return; }
+  try{ await sbDelete(id); }catch(e){ setStatus('⚠️ Löschen fehlgeschlagen: '+e.message); return; }
+  spotNoteList=spotNoteList.filter(x=>x.id!==id); refreshOpenPopup();
 };
 
 function popupHtml(kind,p,lat,lon){
@@ -819,6 +843,53 @@ async function loadSharedSigns(quiet){
   }catch(e){ setStatus('⚠️ Geteilte Schilder nicht ladbar: '+e.message); }
 }
 
+/* ===== Geteilte Einträge (Orte, Strecken, Kommentare) – Supabase-Tabelle „entries" ===== */
+function sbRow(row){ return Object.assign({id:row.id, author:row.author, ts:row.ts}, row.data||{}); }
+async function sbPost(kind,data){
+  const rec={kind,data,author:ensureAuthor(),ts:Date.now()};
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/entries`,{method:'POST',headers:{...SB_HEAD,'Prefer':'return=representation'},body:JSON.stringify(rec)});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const rows=await r.json(); return rows[0]||{id:undefined,author:rec.author,ts:rec.ts,data};
+}
+async function sbDelete(id){
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/entries?id=eq.${id}`,{method:'DELETE',headers:SB_HEAD});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+}
+async function loadEntries(quiet){
+  if(!SHARED) return;
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/entries?select=*&order=ts.asc`,{headers:SB_HEAD});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const rows=await r.json(); const P=[],S=[],N=[];
+    for(const row of rows){ const o=sbRow(row);
+      if(row.kind==='poi') P.push(o); else if(row.kind==='strk') S.push(o); else if(row.kind==='note') N.push(o); }
+    userPois=P; userStrecken=S; spotNoteList=N;
+    renderUserPois(); renderUserStrecken();
+    migrateLocalToShared();
+  }catch(e){
+    if(!quiet) setStatus('⚠️ Geteilte Einträge nicht ladbar – ist die Tabelle „entries" in Supabase schon angelegt? (siehe SETUP.md) · '+e.message);
+  }
+}
+// Einmalig: zuvor lokal gespeicherte Orte/Strecken/Kommentare ins geteilte Backend hochladen
+let _migrating=false;
+async function migrateLocalToShared(){
+  if(_migrating || localStorage.getItem('migratedToShared')) return;
+  const lp=JSON.parse(localStorage.getItem('userPois')||'[]');
+  const ls=JSON.parse(localStorage.getItem('userStrecken')||'[]');
+  const ln=JSON.parse(localStorage.getItem('spotNotes')||'{}');
+  const tasks=[];
+  for(const o of lp) tasks.push(['poi',{cat:o.cat,name:o.name,lat:o.lat,lon:o.lon}]);
+  for(const s of ls) tasks.push(['strk',{a:s.a,b:s.b,line:s.line,approx:s.approx}]);
+  for(const k in ln) if(ln[k]) tasks.push(['note',{key:k,text:ln[k]}]);
+  if(!tasks.length){ localStorage.setItem('migratedToShared','1'); return; }
+  _migrating=true;
+  if(!confirm(`${tasks.length} bisher nur lokal gespeicherte Einträge (Orte/Strecken/Kommentare) gefunden. Jetzt mit der Gruppe teilen?`)){ localStorage.setItem('migratedToShared','1'); _migrating=false; return; }
+  let ok=0; for(const [kind,data] of tasks){ try{ await sbPost(kind,data); ok++; }catch(_){ } }
+  localStorage.setItem('migratedToShared','1'); _migrating=false;
+  setStatus(`✅ ${ok} lokale Einträge hochgeladen & geteilt.`);
+  loadEntries(true);
+}
+
 const userSignLayer=L.layerGroup();
 function signMarkerIcon(code,sz){sz=sz||32;return L.divIcon({className:'',html:`<div class="usericon" style="width:${sz}px;height:${sz}px">${signImg(code,sz)}</div>`,iconSize:[sz+2,sz+2],iconAnchor:[(sz+2)/2,(sz+2)/2],popupAnchor:[0,-(sz+2)/2]});}
 function renderUserSigns(){
@@ -980,9 +1051,9 @@ map.on('popupopen',e=>{
 });
 
 /* ============ Wasserski-Strecke entlang des Flusslaufs (OSM-Wasserwege) ============ */
-let userStrecken = JSON.parse(localStorage.getItem('userStrecken')||'[]');
+let userStrecken = SHARED ? [] : JSON.parse(localStorage.getItem('userStrecken')||'[]');
 const userStrkLayer = L.layerGroup();
-function saveStrecken(){ localStorage.setItem('userStrecken',JSON.stringify(userStrecken)); }
+function saveStrecken(){ if(!SHARED) localStorage.setItem('userStrecken',JSON.stringify(userStrecken)); }
 function haversine(a,b){ const R=6371000,toR=x=>x*Math.PI/180;
   const dLat=toR(b[0]-a[0]), dLon=toR(b[1]-a[1]);
   const s=Math.sin(dLat/2)**2+Math.cos(toR(a[0]))*Math.cos(toR(b[0]))*Math.sin(dLon/2)**2;
@@ -1075,9 +1146,12 @@ async function buildStrecke(a,b){
   if(!line){ line=[[a.lat,a.lng],[b.lat,b.lng]]; approx=true;
     setStatus('⚠️ Kein zusammenhängender Flusslauf gefunden – vorerst als gerade Linie markiert (bitte prüfen).'); }
   else setStatus('✅ Wasserski-Strecke entlang des Flusslaufs eingezeichnet.');
-  const rec={a:[a.lat,a.lng], b:[b.lat,b.lng], line, approx, ts:Date.now()};
-  if(SHARED) rec.author=ensureAuthor();
-  userStrecken.push(rec); saveStrecken(); renderUserStrecken();
+  const data={a:[a.lat,a.lng], b:[b.lat,b.lng], line, approx};
+  if(SHARED){
+    try{ const row=await sbPost('strk',data); userStrecken.push(sbRow(row)); }
+    catch(e){ setStatus('⚠️ Strecke speichern fehlgeschlagen: '+e.message+' – Tabelle „entries" angelegt?'); }
+  } else { userStrecken.push(Object.assign({ts:Date.now()},data)); saveStrecken(); }
+  renderUserStrecken();
   if(!map.hasLayer(userStrkLayer)) map.addLayer(userStrkLayer);
   if(!document.getElementById('ly-mine').checked){ document.getElementById('ly-mine').checked=true; map.addLayer(userSignLayer); }
   try{ map.fitBounds(L.latLngBounds(line),{padding:[60,60],maxZoom:15}); }catch(_){}
@@ -1100,7 +1174,10 @@ function renderUserStrecken(){
     });
   });
 }
-window.__delStrk=function(i){ userStrecken.splice(i,1); saveStrecken(); renderUserStrecken(); map.closePopup(); closeDetail(); };
+window.__delStrk=async function(i){ const s=userStrecken[i]; if(!s) return;
+  if(SHARED){ if((s.author||'')!==signAuthor){ setStatus('Nur eigene Strecken können gelöscht werden.'); return; }
+    try{ await sbDelete(s.id); }catch(e){ setStatus('⚠️ Löschen fehlgeschlagen: '+e.message); return; } }
+  userStrecken.splice(i,1); saveStrecken(); renderUserStrecken(); map.closePopup(); closeDetail(); };
 map.addLayer(userStrkLayer); renderUserStrecken();
 
 /* ============ Eigene Orte/POIs eintragen (Hafen, Slip, SUP … – auch im Ausland) ============ */
@@ -1114,9 +1191,9 @@ const POI_CATS=[
   {key:'spot',  label:'Sonstiger Ort',        color:'#46c8e6', glyph:'📍'}
 ];
 function poiCat(k){ return POI_CATS.find(c=>c.key===k)||POI_CATS[POI_CATS.length-1]; }
-let userPois = JSON.parse(localStorage.getItem('userPois')||'[]');
+let userPois = SHARED ? [] : JSON.parse(localStorage.getItem('userPois')||'[]');
 const userPoiLayer = L.layerGroup();
-function savePois(){ localStorage.setItem('userPois',JSON.stringify(userPois)); }
+function savePois(){ if(!SHARED) localStorage.setItem('userPois',JSON.stringify(userPois)); }
 function poiIcon(cat){ const c=poiCat(cat); return teardropIcon(c.color,c.glyph); }
 function renderUserPois(){
   userPoiLayer.clearLayers();
@@ -1130,17 +1207,23 @@ function renderUserPois(){
     userPoiLayer.addLayer(m);
   });
 }
-window.__delPoi=function(i){ userPois.splice(i,1); savePois(); renderUserPois(); map.closePopup(); closeDetail(); };
+window.__delPoi=async function(i){ const o=userPois[i]; if(!o) return;
+  if(SHARED){ if((o.author||'')!==signAuthor){ setStatus('Nur eigene Orte können gelöscht werden.'); return; }
+    try{ await sbDelete(o.id); }catch(e){ setStatus('⚠️ Löschen fehlgeschlagen: '+e.message); return; } }
+  userPois.splice(i,1); savePois(); renderUserPois(); map.closePopup(); closeDetail(); };
 map.addLayer(userPoiLayer); renderUserPois();
 function startPoiMode(cat){ cancelModes(); poiMode=cat; const c=poiCat(cat); bannerShow(`📍 Tippe die Stelle für: <b>${c.glyph} ${escapeHtml(c.label)}</b>`); }
-function placePoi(latlng){
+async function placePoi(latlng){
   const cat=poiMode; poiMode=null; bannerHide();
   const name=((prompt('Name / Bezeichnung des Orts (optional):','')||'').trim()).slice(0,80);
-  const rec={cat,name,lat:latlng.lat,lon:latlng.lng,ts:Date.now()};
-  if(SHARED) rec.author=ensureAuthor();
-  userPois.push(rec); savePois(); renderUserPois();
+  const data={cat,name,lat:latlng.lat,lon:latlng.lng};
+  if(SHARED){
+    try{ const row=await sbPost('poi',data); userPois.push(sbRow(row)); }
+    catch(e){ setStatus('⚠️ Speichern fehlgeschlagen: '+e.message+' – Tabelle „entries" angelegt?'); return; }
+  } else { userPois.push(Object.assign({ts:Date.now()},data)); savePois(); }
+  renderUserPois();
   const cb=document.getElementById('ly-mine'); if(!cb.checked){ cb.checked=true; map.addLayer(userSignLayer); map.addLayer(userStrkLayer); map.addLayer(userPoiLayer); }
-  setStatus(`✅ Ort „${name||poiCat(cat).label}" eingetragen.`);
+  setStatus(`✅ Ort „${name||poiCat(cat).label}" eingetragen.${SHARED?' (geteilt)':''}`);
 }
 function openPoiPicker(){
   cancelModes();
@@ -1166,12 +1249,13 @@ map.addLayer(userSignLayer);
 try {
   if(SHARED){
     const lab=document.getElementById('ly-mine').closest('.layer');
-    if(lab){ lab.querySelector('.lab b').textContent='Eingetragene Schilder';
-             lab.querySelector('.lab span').textContent='geteilt – von dir & Freunden'; }
+    if(lab){ lab.querySelector('.lab b').textContent='Eingetragene Punkte';
+             lab.querySelector('.lab span').textContent='Schilder, Orte & Strecken – geteilt'; }
     const rb=document.getElementById('refresh-signs');
-    if(rb){ rb.style.display='block'; rb.addEventListener('click',()=>loadSharedSigns(false)); }
-    loadSharedSigns(true);
-    setInterval(()=>loadSharedSigns(true), 30000); // alle 30 s aktualisieren
+    if(rb){ rb.style.display='block'; rb.textContent='🔄 Geteilte Einträge aktualisieren';
+            rb.addEventListener('click',()=>{ loadSharedSigns(false); loadEntries(false); }); }
+    loadSharedSigns(true); loadEntries(true);
+    setInterval(()=>{ loadSharedSigns(true); loadEntries(true); }, 30000); // alle 30 s aktualisieren
   } else {
     renderUserSigns();
   }

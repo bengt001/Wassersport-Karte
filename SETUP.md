@@ -30,7 +30,29 @@ Diese Anleitung bringt die App **kostenlos online** (GitHub Pages) und macht das
    ```
 
    (Damit darf jeder in deiner Freundesgruppe lesen, eintragen und löschen.
-   Die App selbst lässt das Löschen nur bei den **eigenen** Schildern zu.)
+   Die App selbst lässt das Löschen nur bei den **eigenen** Einträgen zu.)
+
+2b. **Für geteilte Orte, Strecken & Kommentare** zusätzlich diese zweite
+   Tabelle anlegen (SQL Editor → einfügen → **Run**):
+
+   ```sql
+   create table public.entries (
+     id     bigint generated always as identity primary key,
+     kind   text not null,            -- 'poi' | 'strk' | 'note'
+     data   jsonb not null,
+     author text,
+     ts     bigint not null
+   );
+   alter table public.entries enable row level security;
+   create policy "read"   on public.entries for select using (true);
+   create policy "insert" on public.entries for insert with check (true);
+   create policy "delete" on public.entries for delete using (true);
+   ```
+
+   Ohne diese Tabelle läuft die App weiter – eigene Orte/Strecken/Kommentare
+   werden dann nur lokal gespeichert (nicht geteilt). Beim ersten Start mit
+   vorhandener Tabelle bietet die App an, bisher lokal gespeicherte Einträge
+   hochzuladen.
 
 3. Links **Project Settings → API** öffnen und zwei Werte kopieren:
    - **Project URL** (z. B. `https://abcdxyz.supabase.co`)
