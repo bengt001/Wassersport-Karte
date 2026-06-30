@@ -139,11 +139,39 @@
   .pcard img{flex:0 0 auto;border-radius:4px}
   .signfb{display:inline-flex;align-items:center;justify-content:center;background:#fff;color:#111;border:2px solid #d11;border-radius:4px;font:700 9px/1.05 var(--mono);text-align:center;padding:1px}
   .usericon{filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));background:#fff;border-radius:5px;border:1px solid rgba(0,0,0,.25);box-sizing:content-box}
+  /* Karte heller & lesbarer (dunkler Stil war zu dunkel) */
+  .leaflet-tile-pane{filter:brightness(1.9) contrast(.98) saturate(1.3)}
+  /* Mobile App-Shell: Topbar (Menü+Suche+Sync) und FAB – nur auf dem Handy */
+  #topbar{display:none}
+  #fab{display:none}
+  #fab-menu{display:none}
+  .sheet-x{float:right;background:#232932;border:0;color:var(--muted2);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:14px;margin:-2px -2px 6px 8px}
+  .sheet-x:hover{color:var(--txt)}
+  @keyframes wsk-pulse{0%{box-shadow:0 0 0 0 rgba(90,214,158,.5)}70%{box-shadow:0 0 0 8px rgba(90,214,158,0)}100%{box-shadow:0 0 0 0 rgba(90,214,158,0)}}
+  @media (max-width:760px){
+    #burger{position:static!important;box-shadow:none!important;flex:none 0 0 auto}
+    #topbar{display:flex;align-items:center;gap:9px;position:absolute;z-index:1100;left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top))}
+    #mtop-search{flex:1;min-width:0;height:46px;border-radius:13px;background:var(--panel);border:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 13px;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+    #mtop-search .mt-ico{color:var(--muted);font-size:16px}
+    #mtop-search input{flex:1;min-width:0;background:transparent;border:0;color:var(--txt);font-size:16px;font-family:inherit;outline:none}
+    #mtop-search input::placeholder{color:var(--muted)}
+    #sync-pill{display:flex;align-items:center;gap:7px;height:46px;padding:0 13px;border-radius:13px;background:var(--panel);border:1px solid var(--line);font:600 11px/1 var(--mono);color:var(--muted2);flex:none;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+    #sync-pill .dotpulse{width:8px;height:8px;border-radius:50%;background:var(--ok);animation:wsk-pulse 2.4s infinite}
+    .leaflet-control-zoom{margin-top:74px!important}
+    #fab{display:flex;align-items:center;gap:8px;position:absolute;z-index:1150;right:max(14px,env(safe-area-inset-right));bottom:calc(26px + env(safe-area-inset-bottom));height:52px;padding:0 20px;border:0;border-radius:16px;background:var(--accent);color:#06232b;font:600 15px/1 'IBM Plex Sans',sans-serif;cursor:pointer;box-shadow:0 10px 26px -6px rgba(70,200,230,.6)}
+    #fab-menu.open{display:flex;flex-direction:column;gap:8px;position:absolute;z-index:1150;right:max(14px,env(safe-area-inset-right));bottom:calc(90px + env(safe-area-inset-bottom));width:min(80vw,310px)}
+    #fab-menu button{display:flex;align-items:center;gap:10px;background:var(--sheet);border:1px solid var(--line);color:var(--txt);border-radius:13px;padding:14px 15px;font:600 13.5px/1.25 'IBM Plex Sans',sans-serif;cursor:pointer;text-align:left;box-shadow:0 10px 26px -8px rgba(0,0,0,.6)}
+    #fab-menu button:hover{border-color:var(--accent)}
+  }
 </style>
 </head>
 <body>
 <div id="app">
-  <button id="burger">☰</button>
+  <div id="topbar">
+    <button id="burger" aria-label="Menü">☰</button>
+    <div id="mtop-search"><span class="mt-ico">⌕</span><input id="q2" placeholder="Ort, Fluss oder km …" autocomplete="off"></div>
+    <div id="sync-pill" title="Datenstatus"><span class="dotpulse"></span><span id="sync-txt">Lokal</span></div>
+  </div>
   <aside id="side">
     <header>
       <h1>⚓ Wassersport-Karte <span class="badge" id="db-badge">DE</span></h1>
@@ -207,6 +235,7 @@
           <span class="cnt" id="cnt-mine">–</span>
         </label>
         <button class="add" id="add-sign">➕ Schild an Stelle eintragen</button>
+        <button class="amt" id="add-strk">📐 Wasserski-Strecke aus 2 Punkten</button>
         <button class="ghost" id="refresh-signs" style="display:none">🔄 Geteilte Schilder aktualisieren</button>
         <button class="amt" id="open-strk">📋 Wasserski-Strecken auflisten (amtlich)</button>
         <button class="ghost" id="locate">📍 Meinen Standort anzeigen</button>
@@ -253,6 +282,15 @@
   </aside>
   <div id="map"></div>
   <div class="addbanner" id="addbanner"><span>🖱️ Tippe auf die Karte, wo das Schild steht</span><button id="cancel-add" type="button">✖ Abbrechen</button></div>
+  <button id="fab" type="button">＋ Aktion</button>
+  <div id="fab-menu">
+    <button data-act="sign" type="button">➕ Einzelnes Schild eintragen</button>
+    <button data-act="strk" type="button">📐 Wasserski-Strecke aus 2 Punkten</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="detail-modal">
+  <div class="modal"><div class="mbody"><button id="detail-close" class="sheet-x" type="button">✕</button><div id="detail-body"></div></div></div>
 </div>
 
 <div class="modal-bg" id="pick-modal">
@@ -381,8 +419,8 @@ function bindLayer(id,kind){
 bindLayer('ly-slip','slip'); bindLayer('ly-ski','ski'); bindLayer('ly-jet','jet'); bindLayer('ly-harbor','harbor');
 
 /* ---------- Ortssuche (Nominatim) ---------- */
-async function geocode(){
-  const q=document.getElementById('q').value.trim();
+async function geocode(qstr){
+  const q=((qstr!=null && typeof qstr==='string') ? qstr : document.getElementById('q').value).trim();
   if(!q) return;
   setStatus('🔎 Suche Ort …');
   try{
@@ -751,24 +789,40 @@ window.__delSign=async function(i){
     try{ const r=await fetch(`${SUPABASE_URL}/rest/v1/signs?id=eq.${s.id}`,{method:'DELETE',headers:SB_HEAD}); if(!r.ok) throw new Error('HTTP '+r.status); }
     catch(e){ setStatus('⚠️ Löschen fehlgeschlagen: '+e.message); return; }
   }
-  userSigns.splice(i,1); saveSigns(); renderUserSigns(); map.closePopup();
+  userSigns.splice(i,1); saveSigns(); renderUserSigns(); map.closePopup(); closeDetail();
 };
-document.getElementById('ly-mine').addEventListener('change',e=>{ if(e.target.checked)map.addLayer(userSignLayer); else map.removeLayer(userSignLayer); });
+document.getElementById('ly-mine').addEventListener('change',e=>{
+  if(e.target.checked){ map.addLayer(userSignLayer); map.addLayer(userStrkLayer); }
+  else { map.removeLayer(userSignLayer); map.removeLayer(userStrkLayer); }
+});
 
-// Eintrag-Modus
-let addMode=false, pendingLatLng=null;
-function setAddMode(on){
-  addMode=on; pendingLatLng=null;
-  const btn=document.getElementById('add-sign');
-  btn.classList.toggle('active',on);
-  btn.textContent= on?'✖ Eintragen abbrechen':'➕ Schild an Stelle eintragen';
-  document.getElementById('addbanner').classList.toggle('show',on);
-  document.getElementById('map').classList.toggle('addmode',on);
-  if(on) document.getElementById('side').classList.remove('open'); // auf dem Handy Karte freigeben
+// ===== Eintrag-Modi: Einzelschild + Wasserski-Strecke (2 Punkte) =====
+let addMode=false, pendingLatLng=null;        // Einzelschild
+let strkStep=0, strkA=null, strkTmp=null;     // Strecke: 0 aus · 1 Start · 2 Ende
+const _banner=document.getElementById('addbanner');
+const _bannerSpan=_banner.querySelector('span');
+function bannerShow(text){ _bannerSpan.innerHTML=text; _banner.classList.add('show'); document.getElementById('map').classList.add('addmode'); document.getElementById('side').classList.remove('open'); }
+function bannerHide(){ _banner.classList.remove('show'); document.getElementById('map').classList.remove('addmode'); }
+function resetSignBtn(){ const b=document.getElementById('add-sign'); b.classList.remove('active'); b.textContent='➕ Schild an Stelle eintragen'; }
+function cancelModes(){
+  addMode=false; pendingLatLng=null; strkStep=0; strkA=null;
+  if(strkTmp){ map.removeLayer(strkTmp); strkTmp=null; }
+  resetSignBtn(); bannerHide();
 }
+function setAddMode(on){
+  cancelModes();
+  if(on){ addMode=true; const b=document.getElementById('add-sign'); b.classList.add('active'); b.textContent='✖ Eintragen abbrechen';
+    bannerShow('🖱️ Tippe auf die Karte, wo das Schild steht'); }
+}
+function startStreckeMode(){ cancelModes(); strkStep=1; bannerShow('📐 Strecke: tippe den <b>Startpunkt</b> am Fluss'); }
 document.getElementById('add-sign').addEventListener('click',()=>setAddMode(!addMode));
-document.getElementById('cancel-add').addEventListener('click',()=>setAddMode(false));
-map.on('click',e=>{ if(addMode){ pendingLatLng=e.latlng; addMode=false; document.getElementById('add-sign').classList.remove('active'); document.getElementById('add-sign').textContent='➕ Schild an Stelle eintragen'; document.getElementById('addbanner').classList.remove('show'); document.getElementById('map').classList.remove('addmode'); openPick(); }});
+document.getElementById('add-strk').addEventListener('click',startStreckeMode);
+document.getElementById('cancel-add').addEventListener('click',cancelModes);
+map.on('click',e=>{
+  if(addMode){ pendingLatLng=e.latlng; addMode=false; bannerHide(); resetSignBtn(); openPick(); return; }
+  if(strkStep===1){ strkA=e.latlng; strkTmp=L.marker(strkA,{icon:signMarkerIcon('E.17',30)}).addTo(map); strkStep=2; bannerShow('📐 Strecke: tippe den <b>Endpunkt</b> am Fluss'); return; }
+  if(strkStep===2){ const b=e.latlng, a=strkA; strkStep=0; bannerHide(); if(strkTmp){ map.removeLayer(strkTmp); strkTmp=null; } buildStrecke(a,b); return; }
+});
 
 // Auswahlfenster (häufigste oben + eigene Nutzung; Kategorie-Filter)
 let pickCat='Alle';
@@ -797,7 +851,7 @@ function closePick(){ document.getElementById('pick-modal').classList.remove('op
 document.getElementById('close-pick').addEventListener('click',closePick);
 document.getElementById('pick-modal').addEventListener('click',e=>{ if(e.target.id==='pick-modal') closePick(); });
 document.getElementById('pick-q').addEventListener('input',e=>renderPick(e.target.value));
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(addMode)setAddMode(false); closePick(); }});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ cancelModes(); closePick(); closeDetail(); }});
 
 async function placeSign(code){
   if(!pendingLatLng) return;
@@ -833,8 +887,157 @@ function applyMarkerScale(){
   sM.addEventListener('input',()=>{ lM.textContent=Math.round(sM.value*100)+' %'; });
   sM.addEventListener('change',()=>{ markerScale=+sM.value; localStorage.setItem('markerScale',markerScale); applyMarkerScale(); });
   sS.addEventListener('input',()=>{ lS.textContent=Math.round(sS.value*100)+' %'; });
-  sS.addEventListener('change',()=>{ signScale=+sS.value; localStorage.setItem('signScale',signScale); renderUserSigns(); });
+  sS.addEventListener('change',()=>{ signScale=+sS.value; localStorage.setItem('signScale',signScale); renderUserSigns(); renderUserStrecken(); });
 })();
+
+/* ============ Mobile App-Shell: Topbar-Suche, Sync-Pille, FAB-Menü ============ */
+const isMobile=()=>window.matchMedia('(max-width:760px)').matches;
+(function initShell(){
+  const q2=document.getElementById('q2');
+  if(q2) q2.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ geocode(q2.value); document.getElementById('side').classList.remove('open'); } });
+  const st=document.getElementById('sync-txt'), sp=document.getElementById('sync-pill');
+  if(st) st.textContent = SHARED ? 'Sync' : 'Lokal';
+  if(sp && !SHARED){ const d=sp.querySelector('.dotpulse'); if(d){ d.style.background='#79828f'; d.style.animation='none'; } }
+  const fab=document.getElementById('fab'), menu=document.getElementById('fab-menu');
+  if(fab&&menu){
+    fab.addEventListener('click',()=>menu.classList.toggle('open'));
+    menu.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+      menu.classList.remove('open');
+      if(b.dataset.act==='sign') setAddMode(true); else startStreckeMode();
+    }));
+  }
+})();
+
+/* ============ Detail-Bottom-Sheet (mobil) statt Karten-Popup ============ */
+function openDetail(html){ document.getElementById('detail-body').innerHTML=html; document.getElementById('detail-modal').classList.add('open'); }
+function closeDetail(){ document.getElementById('detail-modal').classList.remove('open'); }
+document.getElementById('detail-close').addEventListener('click',closeDetail);
+document.getElementById('detail-modal').addEventListener('click',e=>{ if(e.target.id==='detail-modal') closeDetail(); });
+map.on('popupopen',e=>{
+  if(!isMobile()) return;
+  const node=e.popup._contentNode; const html=node?node.innerHTML:'';
+  if(!html) return;
+  setTimeout(()=>{ map.closePopup(e.popup); openDetail(html); },0);
+});
+
+/* ============ Wasserski-Strecke entlang des Flusslaufs (OSM-Wasserwege) ============ */
+let userStrecken = JSON.parse(localStorage.getItem('userStrecken')||'[]');
+const userStrkLayer = L.layerGroup();
+function saveStrecken(){ localStorage.setItem('userStrecken',JSON.stringify(userStrecken)); }
+function haversine(a,b){ const R=6371000,toR=x=>x*Math.PI/180;
+  const dLat=toR(b[0]-a[0]), dLon=toR(b[1]-a[1]);
+  const s=Math.sin(dLat/2)**2+Math.cos(toR(a[0]))*Math.cos(toR(b[0]))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(s)); }
+// Mini-Binärheap für Dijkstra (Kürzeste-Wege entlang der Wasserwege)
+function Heap(){ this.a=[]; }
+Heap.prototype.push=function(n){ const a=this.a; a.push(n); let i=a.length-1;
+  while(i>0){ const p=(i-1)>>1; if(a[p][0]<=a[i][0]) break; const t=a[p]; a[p]=a[i]; a[i]=t; i=p; } };
+Heap.prototype.pop=function(){ const a=this.a, top=a[0], last=a.pop();
+  if(a.length){ a[0]=last; let i=0; for(;;){ const l=2*i+1,r=l+1; let m=i;
+    if(l<a.length&&a[l][0]<a[m][0]) m=l; if(r<a.length&&a[r][0]<a[m][0]) m=r;
+    if(m===i) break; const t=a[m]; a[m]=a[i]; a[i]=t; i=m; } } return top; };
+Heap.prototype.size=function(){ return this.a.length; };
+async function fetchWaterways(a,b){
+  const pad=0.012;
+  const s=Math.min(a.lat,b.lat)-pad, n=Math.max(a.lat,b.lat)+pad,
+        w=Math.min(a.lng,b.lng)-pad, e=Math.max(a.lng,b.lng)+pad;
+  const q=`[out:json][timeout:25];(way["waterway"~"^(river|canal|stream)$"](${s},${w},${n},${e}););out geom;`;
+  const eps=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+  for(const ep of eps){
+    try{ const r=await fetch(ep,{method:'POST',body:q}); if(!r.ok) continue;
+      const d=await r.json(); if(d&&d.elements&&d.elements.length) return d.elements; }
+    catch(_){}
+  }
+  return null;
+}
+function buildGraph(ways){
+  const key=(la,lo)=>la.toFixed(5)+','+lo.toFixed(5);
+  const adj=new Map(), pts=new Map();
+  function node(la,lo){ const k=key(la,lo); if(!pts.has(k)){ pts.set(k,[la,lo]); adj.set(k,[]); } return k; }
+  for(const wy of ways){ const g=wy.geometry; if(!g) continue;
+    for(let i=0;i<g.length-1;i++){ const k1=node(g[i].lat,g[i].lon), k2=node(g[i+1].lat,g[i+1].lon);
+      if(k1===k2) continue; const d=haversine(pts.get(k1),pts.get(k2));
+      adj.get(k1).push([k2,d]); adj.get(k2).push([k1,d]); } }
+  return {adj,pts};
+}
+function nearestKey(graph,ll){ let best=null,bd=Infinity;
+  for(const [k,p] of graph.pts){ const d=haversine([ll.lat,ll.lng],p); if(d<bd){ bd=d; best=k; } }
+  return {key:best,dist:bd}; }
+function dijkstra(graph,start,goal){
+  const dist=new Map(), prev=new Map(), h=new Heap(); dist.set(start,0); h.push([0,start]);
+  while(h.size()){ const top=h.pop(); const d=top[0], u=top[1];
+    if(u===goal) break; if(d>(dist.has(u)?dist.get(u):Infinity)) continue;
+    for(const [v,w] of (graph.adj.get(u)||[])){ const nd=d+w;
+      if(nd<(dist.has(v)?dist.get(v):Infinity)){ dist.set(v,nd); prev.set(v,u); h.push([nd,v]); } } }
+  if(start!==goal && !prev.has(goal)) return null;
+  const path=[]; let cur=goal; let guard=0;
+  while(cur && guard++<100000){ path.push(graph.pts.get(cur)); if(cur===start) break; cur=prev.get(cur); }
+  return path.reverse();
+}
+// Zusammenhangskomponenten (Flüsse sind oft in viele Wege zerlegt; Nebengräben hängen NICHT dran)
+function components(graph){
+  const comp=new Map(); let id=0;
+  for(const k of graph.pts.keys()){
+    if(comp.has(k)) continue;
+    const stack=[k]; comp.set(k,id);
+    while(stack.length){ const u=stack.pop();
+      for(const e of (graph.adj.get(u)||[])){ const v=e[0]; if(!comp.has(v)){ comp.set(v,id); stack.push(v); } } }
+    id++;
+  }
+  return comp;
+}
+// Beide Endpunkte auf DIESELBE zusammenhängende Wasserstraße (i. d. R. den Hauptfluss) schnappen
+function bestComponentSnap(graph,a,b){
+  const comp=components(graph);
+  const best=new Map(); // compId -> {ka,da,kb,db}
+  for(const [k,p] of graph.pts){
+    const id=comp.get(k);
+    const da=haversine([a.lat,a.lng],p), db=haversine([b.lat,b.lng],p);
+    let rec=best.get(id); if(!rec){ rec={ka:null,da:Infinity,kb:null,db:Infinity}; best.set(id,rec); }
+    if(da<rec.da){ rec.da=da; rec.ka=k; }
+    if(db<rec.db){ rec.db=db; rec.kb=k; }
+  }
+  let pick=null,score=Infinity;
+  for(const rec of best.values()){ const sc=rec.da+rec.db; if(sc<score){ score=sc; pick=rec; } }
+  return pick;
+}
+async function buildStrecke(a,b){
+  setStatus('🌊 Suche den Flusslauf zwischen den beiden Punkten …');
+  let line=null, approx=false;
+  try{
+    const ways=await fetchWaterways(a,b);
+    if(ways){ const g=buildGraph(ways);
+      if(g.pts.size){ const snap=bestComponentSnap(g,a,b);
+        if(snap && snap.ka && snap.kb && snap.da<2500 && snap.db<2500){
+          const p=dijkstra(g,snap.ka,snap.kb);
+          if(p && p.length>1) line=[[a.lat,a.lng], ...p, [b.lat,b.lng]];
+        } } }
+  }catch(_){}
+  if(!line){ line=[[a.lat,a.lng],[b.lat,b.lng]]; approx=true;
+    setStatus('⚠️ Kein zusammenhängender Flusslauf gefunden – vorerst als gerade Linie markiert (bitte prüfen).'); }
+  else setStatus('✅ Wasserski-Strecke entlang des Flusslaufs eingezeichnet.');
+  const rec={a:[a.lat,a.lng], b:[b.lat,b.lng], line, approx, ts:Date.now()};
+  if(SHARED) rec.author=ensureAuthor();
+  userStrecken.push(rec); saveStrecken(); renderUserStrecken();
+  if(!map.hasLayer(userStrkLayer)) map.addLayer(userStrkLayer);
+  if(!document.getElementById('ly-mine').checked){ document.getElementById('ly-mine').checked=true; map.addLayer(userSignLayer); }
+  try{ map.fitBounds(L.latLngBounds(line),{padding:[60,60],maxZoom:15}); }catch(_){}
+}
+function renderUserStrecken(){
+  userStrkLayer.clearLayers();
+  userStrecken.forEach((s,idx)=>{
+    const own=!SHARED||(s.author||'')===signAuthor;
+    const by=(SHARED&&s.author)?` · <b>${s.author}</b>`:'';
+    const warn=s.approx?'<br><span style="color:#f1cf94;font-size:11px">⚠️ gerade Linie – kein Flusslauf gefunden</span>':'';
+    const del=own?`<br><button onclick="window.__delStrk(${idx})" style="margin-top:8px;background:#c62828;color:#fff;border:0;border-radius:7px;padding:6px 11px;cursor:pointer">🗑 löschen</button>`:'';
+    const pl=L.polyline(s.line,{color:'#f1b24a',weight:6,opacity:.95,lineCap:'round',lineJoin:'round',dashArray:s.approx?'10,8':null});
+    pl.bindPopup(`<b>Wasserski-Strecke</b> <code style="color:var(--accent)">E.17</code><br><span style="color:#9fb6cf;font-size:11px">${new Date(s.ts).toLocaleDateString('de-DE')}${by}</span>${warn}${del}`);
+    userStrkLayer.addLayer(pl);
+    [s.a,s.b].forEach(pt=>userStrkLayer.addLayer(L.marker(pt,{icon:signMarkerIcon('E.17',Math.round(30*signScale))})));
+  });
+}
+window.__delStrk=function(i){ userStrecken.splice(i,1); saveStrecken(); renderUserStrecken(); map.closePopup(); closeDetail(); };
+map.addLayer(userStrkLayer); renderUserStrecken();
 
 // Karten-Daten zuerst laden – robust, unabhängig vom Schilder-Teil
 loadData();
