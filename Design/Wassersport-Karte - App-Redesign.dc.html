@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+@keyframes wsk-pulse{0%{box-shadow:0 0 0 0 rgba(90,214,158,.45)}70%{box-shadow:0 0 0 9px rgba(90,214,158,0)}100%{box-shadow:0 0 0 0 rgba(90,214,158,0)}}
+</style>
+</helmet>
+
+<!-- ============================ SYSTEM PANEL ============================ -->
+<div style="position:absolute;left:0;top:0;width:600px;font-family:'IBM Plex Sans',sans-serif">
+  <div data-drags-parent="1" style="font:600 12px/1 'IBM Plex Mono';color:#7c8593;text-transform:uppercase;letter-spacing:.14em;margin-bottom:14px">Handoff · Design-Spezifikation</div>
+  <div style="background:#12161c;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:30px;color:#eef1f5;box-shadow:0 24px 60px -24px rgba(0,0,0,.5)">
+
+    <div style="display:flex;align-items:center;gap:13px;margin-bottom:8px">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(150deg,#1c8fab,#0f2730);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none">
+        <div style="width:18px;height:18px;border:2.5px solid #46c8e6;border-radius:50%;border-bottom-color:transparent;border-right-color:transparent;transform:rotate(35deg)"></div>
+      </div>
+      <div>
+        <div style="font:700 24px/1.05 'IBM Plex Sans';letter-spacing:-.01em">Wassersport-Karte</div>
+        <div style="font:500 12px/1 'IBM Plex Mono';color:#7e8895;margin-top:5px">Redesign · Mobile-Web · Dark · „Tool"</div>
+      </div>
+    </div>
+    <p style="margin:16px 0 0;font-size:13.5px;line-height:1.65;color:#aab3c0">Ein präzises, dunkles Karten-Tool für Wassersport in Deutschland: Schifffahrtszeichen, Slipstellen, Wasserski-Strecken &amp; Flusskilometer auf einer Vollbild-Karte – mit personalisiertem Schilder-Eintragen. Diese Vorlage definiert Look, Komponenten und Funktionsumfang für die Umsetzung.</p>
+
+    <!-- Farben -->
+    <div style="margin-top:28px;font:600 11px/1 'IBM Plex Mono';color:#7c8593;text-transform:uppercase;letter-spacing:.14em">Oberfläche &amp; Text</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px">
+      <div><div style="height:42px;border-radius:9px;background:#0e1116;border:1px solid rgba(255,255,255,.1)"></div><div style="font:500 10px/1.3 'IBM Plex Mono';color:#8b94a1;margin-top:6px">BG<br>#0E1116</div></div>
+      <div><div style="height:42px;border-radius:9px;background:#171b22;border:1px solid rgba(255,255,255,.07)"></div><div style="font:500 10px/1.3 'IBM Plex Mono';color:#8b94a1;margin-top:6px">Surface<br>#171B22</div></div>
+      <div><div style="height:42px;border-radius:9px;background:#1e232c;border:1px solid rgba(255,255,255,.07)"></div><div style="font:500 10px/1.3 'IBM Plex Mono';color:#8b94a1;margin-top:6px">Sheet<br>#1E232C</div></div>
+      <div><div style="height:42px;border-radius:9px;background:#eef1f5"></div><div style="font:500 10px/1.3 'IBM Plex Mono';color:#8b94a1;margin-top:6px">Text<br>#EEF1F5</div></div>
+    </div>
+
+    <div style="margin-top:22px;font:600 11px/1 'IBM Plex Mono';color:#7c8593;text-transform:uppercase;letter-spacing:.14em">Ebenen-Farben (kategorial)</div>
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:13px">
+      <div style="display:flex;align-items:center;gap:11px"><span style="width:18px;height:18px;border-radius:5px;background:#5fd0ef;flex:none"></span><span style="font-size:13px;flex:1">Schifffahrtszeichen</span><span style="font:500 11px/1 'IBM Plex Mono';color:#8b94a1">#5FD0EF</span></div>
+      <div style="display:flex;align-items:center;gap:11px"><span style="width:18px;height:18px;border-radius:5px;background:#5ad69e;flex:none"></span><span style="font-size:13px;flex:1">Slipstellen &amp; Häfen</span><span style="font:500 11px/1 'IBM Plex Mono';color:#8b94a1">#5AD69E</span></div>
+      <div style="display:flex;align-items:center;gap:11px"><span style="width:18px;height:18px;border-radius:5px;background:#f1b24a;flex:none"></span><span style="font-size:13px;flex:1">Wasserski-Strecken</span><span style="font:500 11px/1 'IBM Plex Mono';color:#8b94a1">#F1B24A</span></div>
+      <div style="display:flex;align-items:center;gap:11px"><span style="width:18px;height:18px;border-radius:5px;background:#9aa9bb;flex:none"></span><span style="font-size:13px;flex:1">Flusskilometer</span><span style="font:500 11px/1 'IBM Plex Mono';color:#8b94a1">#9AA9BB</span></div>
+      <div style="display:flex;align-items:center;gap:11px"><span style="width:18px;height:18px;border-radius:5px;background:#c79bf0;flex:none"></span><span style="font-size:13px;flex:1">Windsurf-Verleih</span><span style="font:500 11px/1 'IBM Plex Mono';color:#8b94a1">#C79BF0</span></div>
+      <div style="display:flex;align-items:center;gap:11px"><span style="width:18px;height:18px;border-radius:5px;background:#46d0cb;flex:none"></span><span style="font-size:13px;flex:1">SUP-Verleih</span><span style="font:500 11px/1 'IBM Plex Mono';color:#8b94a1">#46D0CB</span></div>
+      <div style="display:flex;align-items:center;gap:11px"><span style="width:18px;height:18px;border-radius:5px;background:#46c8e6;flex:none"></span><span style="font-size:13px;flex:1">Akzent / aktiv</span><span style="font:500 11px/1 'IBM Plex Mono';color:#8b94a1">#46C8E6</span></div>
+      <div style="display:flex;align-items:center;gap:11px"><span style="width:18px;height:18px;border-radius:5px;background:#ef6a5a;flex:none"></span><span style="font-size:13px;flex:1">Alert / Platzierungsmodus</span><span style="font:500 11px/1 'IBM Plex Mono';color:#8b94a1">#EF6A5A</span></div>
+    </div>
+
+    <!-- Typo -->
+    <div style="margin-top:26px;font:600 11px/1 'IBM Plex Mono';color:#7c8593;text-transform:uppercase;letter-spacing:.14em">Typografie</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:13px">
+      <div style="background:#171b22;border:1px solid rgba(255,255,255,.06);border-radius:11px;padding:15px">
+        <div style="font:600 22px/1 'IBM Plex Sans'">IBM Plex Sans</div>
+        <div style="font:400 12px/1.5 'IBM Plex Sans';color:#9aa4b2;margin-top:8px">UI, Titel, Fließtext.<br>400 · 500 · 600 · 700</div>
+      </div>
+      <div style="background:#171b22;border:1px solid rgba(255,255,255,.06);border-radius:11px;padding:15px">
+        <div style="font:600 20px/1 'IBM Plex Mono'">IBM Plex Mono</div>
+        <div style="font:400 11px/1.6 'IBM Plex Mono';color:#9aa4b2;margin-top:8px">km 582 · A.17 · B.6<br>53.42° N · 10.38° E</div>
+      </div>
+    </div>
+
+    <!-- Komponenten -->
+    <div style="margin-top:26px;font:600 11px/1 'IBM Plex Mono';color:#7c8593;text-transform:uppercase;letter-spacing:.14em">Komponenten</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:13px">
+      <span style="font:500 12px/1 'IBM Plex Sans';color:#cdd4dd;background:#1e232c;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 11px">App-/Suchleiste</span>
+      <span style="font:500 12px/1 'IBM Plex Sans';color:#cdd4dd;background:#1e232c;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 11px">Karten-Pin (kategoriefarben)</span>
+      <span style="font:500 12px/1 'IBM Plex Sans';color:#cdd4dd;background:#1e232c;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 11px">Cluster</span>
+      <span style="font:500 12px/1 'IBM Plex Sans';color:#cdd4dd;background:#1e232c;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 11px">Bottom-Sheet</span>
+      <span style="font:500 12px/1 'IBM Plex Sans';color:#cdd4dd;background:#1e232c;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 11px">Ebenen-Toggle</span>
+      <span style="font:500 12px/1 'IBM Plex Sans';color:#cdd4dd;background:#1e232c;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 11px">FAB „＋ Schild"</span>
+      <span style="font:500 12px/1 'IBM Plex Sans';color:#cdd4dd;background:#1e232c;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 11px">Hinweis-Banner</span>
+      <span style="font:500 12px/1 'IBM Plex Sans';color:#cdd4dd;background:#1e232c;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:8px 11px">Schild-Kachel</span>
+    </div>
+
+    <!-- Prinzipien -->
+    <div style="margin-top:26px;font:600 11px/1 'IBM Plex Mono';color:#7c8593;text-transform:uppercase;letter-spacing:.14em">Prinzipien</div>
+    <ul style="margin:13px 0 0;padding:0;list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;font-size:12.5px;line-height:1.5;color:#aab3c0">
+      <li style="display:flex;gap:8px"><span style="color:#46c8e6">›</span>Dark-first, Karte = Vollbild</li>
+      <li style="display:flex;gap:8px"><span style="color:#46c8e6">›</span>Daten vorberechnet → schnell</li>
+      <li style="display:flex;gap:8px"><span style="color:#46c8e6">›</span>Safe-Area / Notch beachten</li>
+      <li style="display:flex;gap:8px"><span style="color:#46c8e6">›</span>Touch-Targets ≥ 44 px</li>
+      <li style="display:flex;gap:8px"><span style="color:#46c8e6">›</span>Inputs 16 px (kein iOS-Zoom)</li>
+      <li style="display:flex;gap:8px"><span style="color:#46c8e6">›</span>PWA / Startbildschirm</li>
+      <li style="display:flex;gap:8px"><span style="color:#46c8e6">›</span>Offline-Fallback (localStorage)</li>
+      <li style="display:flex;gap:8px"><span style="color:#46c8e6">›</span>Datenlücken ehrlich sichtbar</li>
+    </ul>
+
+    <!-- Funktionsumfang -->
+    <div style="margin-top:26px;font:600 11px/1 'IBM Plex Mono';color:#7c8593;text-transform:uppercase;letter-spacing:.14em">Funktionsumfang</div>
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:13px;font-size:13px;color:#cdd4dd">
+      <div style="display:flex;gap:10px"><span style="color:#5ad69e">✓</span>Karte mit ein-/ausschaltbaren Ebenen</div>
+      <div style="display:flex;gap:10px"><span style="color:#5ad69e">✓</span>Schild eintragen: Tap → Katalog (88 Zeichen, Binnen + See)</div>
+      <div style="display:flex;gap:10px"><span style="color:#5ad69e">✓</span>„Häufig genutzt" – personalisiert via localStorage</div>
+      <div style="display:flex;gap:10px"><span style="color:#5ad69e">✓</span>Wasserski-Strecken (83) &amp; Flusskilometer (713)</div>
+      <div style="display:flex;gap:10px"><span style="color:#5ad69e">✓</span>Windsurf- (202) &amp; SUP-Verleih (458)</div>
+      <div style="display:flex;gap:10px"><span style="color:#5ad69e">✓</span>Slipstellen / Häfen · ≈ 6.200 Spots</div>
+      <div style="display:flex;gap:10px"><span style="color:#5ad69e">✓</span>Gemeinsame DB (Supabase) + Sync „🔄" alle 30 s</div>
+      <div style="display:flex;gap:10px"><span style="color:#5ad69e">✓</span>Eigene Einträge löschbar, fremde geschützt</div>
+    </div>
+
+    <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08);font:500 11px/1.6 'IBM Plex Mono';color:#6b7480">Karten-Engine: Leaflet 1.9 + markercluster · OSM (dunkler Style).<br>Pictogramme: offizielle PNGs aus <span style="color:#9aa4b2">data/signs/</span> — hier durch Platzhalter-Glyphen dargestellt.</div>
+  </div>
+</div>
+
+<!-- ============================ SCREEN 01 — KARTE ============================ -->
+<div style="position:absolute;left:700px;top:0;width:390px">
+  <div data-drags-parent="1" style="font:600 12px/1 'IBM Plex Mono';color:#7c8593;text-transform:uppercase;letter-spacing:.14em;margin-bottom:14px">01 · Karte</div>
+  <div style="--txt:#eef1f5;width:390px;height:844px;border-radius:42px;overflow:hidden;background:#0e1116;border:1px solid rgba(255,255,255,.1);box-shadow:0 30px 80px -24px rgba(0,0,0,.65);position:relative;color:#eef1f5;font-family:'IBM Plex Sans',sans-serif">
+
+    <!-- map base -->
+    <div style="position:absolute;inset:0;background:radial-gradient(130% 90% at 50% 0%,#12171f,#0b0e13)">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:36px 36px"></div>
+      <svg viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%">
+        <ellipse cx="74" cy="600" rx="82" ry="50" fill="#12242b"></ellipse>
+        <path d="M-20 190 C120 270 150 430 270 480 S430 680 400 900" fill="none" stroke="#11242b" stroke-width="32" stroke-linecap="round"></path>
+        <path d="M-20 190 C120 270 150 430 270 480 S430 680 400 900" fill="none" stroke="#1d3c46" stroke-width="1.5"></path>
+      </svg>
+      <div style="position:absolute;left:12px;bottom:104px;font:500 9px/1 'IBM Plex Mono';color:#5a636e;background:rgba(0,0,0,.4);padding:4px 7px;border-radius:5px">Leaflet · © OpenStreetMap</div>
+
+      <!-- markers -->
+      <div style="position:absolute;left:43%;top:39%;transform:translate(-50%,-50%);width:40px;height:40px;border-radius:50%;background:#46c8e6;color:#08222a;font:700 14px/1 'IBM Plex Mono';display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(70,200,230,.45);border:2px solid rgba(255,255,255,.85);z-index:3">42</div>
+      <div style="position:absolute;left:62%;top:29%;transform:translate(-50%,-100%)"><div style="width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#5fd0ef;box-shadow:0 3px 9px rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center"><div style="width:7px;height:7px;background:#0e1116;border-radius:1.5px;transform:rotate(45deg)"></div></div></div>
+      <div style="position:absolute;left:30%;top:60%;transform:translate(-50%,-100%)"><div style="width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#5ad69e;box-shadow:0 3px 9px rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center"><div style="width:7px;height:7px;background:#0e1116;border-radius:50%;transform:rotate(45deg)"></div></div></div>
+      <div style="position:absolute;left:71%;top:57%;transform:translate(-50%,-100%)"><div style="width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#f1b24a;box-shadow:0 3px 9px rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.9)"></div></div>
+      <div style="position:absolute;left:21%;top:42%;transform:translate(-50%,-100%)"><div style="width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#c79bf0;box-shadow:0 3px 9px rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.9)"></div></div>
+      <div style="position:absolute;left:80%;top:46%;transform:translate(-50%,-100%)"><div style="width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#46d0cb;box-shadow:0 3px 9px rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.9)"></div></div>
+      <div style="position:absolute;left:55%;top:70%;transform:translate(-50%,-100%)"><div style="width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#5fd0ef;box-shadow:0 3px 9px rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center"><div style="width:7px;height:7px;background:#0e1116;border-radius:1.5px;transform:rotate(45deg)"></div></div></div>
+      <!-- km mark -->
+      <div style="position:absolute;left:46%;top:53%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;background:#9aa9bb;transform:rotate(45deg);border:1px solid rgba(255,255,255,.6)"></div><span style="font:600 9px/1 'IBM Plex Mono';color:#aeb8c4;background:rgba(0,0,0,.45);padding:2px 4px;border-radius:3px">km 582</span></div>
+    </div>
+
+    <!-- status bar -->
+    <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:absolute;top:0;left:0;right:0;z-index:10">
+      <span style="font:600 14px/1 'IBM Plex Sans'">9:41</span>
+      <div style="display:flex;gap:7px;align-items:center">
+        <div style="display:flex;gap:1.5px;align-items:flex-end;height:11px"><span style="width:3px;height:4px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:6px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:8px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:11px;background:#eef1f5;border-radius:1px"></span></div>
+        <div style="width:22px;height:11px;border:1.4px solid #eef1f5;border-radius:3px;position:relative;padding:1.5px"><div style="width:72%;height:100%;background:#eef1f5;border-radius:1px"></div></div>
+      </div>
+    </div>
+
+    <!-- top bar -->
+    <div style="position:absolute;top:50px;left:12px;right:12px;display:flex;gap:9px;align-items:center;z-index:6">
+      <div style="width:44px;height:44px;border-radius:13px;background:#171b22;border:1px solid rgba(255,255,255,.09);display:flex;flex-direction:column;gap:3.5px;align-items:center;justify-content:center;flex:none"><span style="width:16px;height:2px;background:#cdd4dd;border-radius:2px"></span><span style="width:16px;height:2px;background:#cdd4dd;border-radius:2px"></span><span style="width:16px;height:2px;background:#cdd4dd;border-radius:2px"></span></div>
+      <div style="flex:1;height:44px;border-radius:13px;background:#171b22;border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;gap:9px;padding:0 14px"><div style="width:14px;height:14px;border:2px solid #79828f;border-radius:50%;position:relative;flex:none"><div style="position:absolute;right:-4px;bottom:-3px;width:6px;height:2px;background:#79828f;border-radius:2px;transform:rotate(45deg)"></div></div><span style="font-size:14px;color:#79828f">Ort, Fluss oder km …</span></div>
+      <div style="height:44px;padding:0 12px;border-radius:13px;background:#171b22;border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;gap:7px;flex:none"><span style="width:8px;height:8px;border-radius:50%;background:#5ad69e;animation:wsk-pulse 2.4s infinite"></span><span style="font:600 11px/1 'IBM Plex Mono';color:#cdd4dd">Sync</span></div>
+    </div>
+
+    <!-- right floating controls -->
+    <div style="position:absolute;right:12px;top:150px;display:flex;flex-direction:column;gap:9px;z-index:6">
+      <div style="width:46px;height:46px;border-radius:14px;background:#171b22;border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.4)"><div style="position:relative;width:18px;height:18px"><div style="position:absolute;inset:0;border:1.6px solid #46c8e6;border-radius:3px;transform:translateY(4px) rotate(45deg) scale(.62)"></div><div style="position:absolute;inset:0;border:1.6px solid #cdd4dd;border-radius:3px;transform:translateY(-2px) rotate(45deg) scale(.62)"></div></div></div>
+      <div style="width:46px;height:46px;border-radius:14px;background:#171b22;border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;justify-content:center"><div style="width:16px;height:16px;border:1.6px solid #cdd4dd;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center"><div style="width:5px;height:5px;border-radius:50%;background:#46c8e6"></div><span style="position:absolute;top:-6px;width:1.6px;height:4px;background:#cdd4dd"></span><span style="position:absolute;bottom:-6px;width:1.6px;height:4px;background:#cdd4dd"></span><span style="position:absolute;left:-6px;height:1.6px;width:4px;background:#cdd4dd"></span><span style="position:absolute;right:-6px;height:1.6px;width:4px;background:#cdd4dd"></span></div></div>
+      <div style="width:46px;border-radius:14px;background:#171b22;border:1px solid rgba(255,255,255,.09);overflow:hidden"><div style="height:44px;display:flex;align-items:center;justify-content:center;font:300 24px/1 'IBM Plex Sans';color:#cdd4dd;border-bottom:1px solid rgba(255,255,255,.08)">+</div><div style="height:44px;display:flex;align-items:center;justify-content:center;font:300 24px/1 'IBM Plex Sans';color:#cdd4dd">−</div></div>
+    </div>
+
+    <!-- bottom row -->
+    <div style="position:absolute;left:12px;right:12px;bottom:34px;display:flex;justify-content:space-between;align-items:flex-end;z-index:6">
+      <div style="background:rgba(20,24,30,.82);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:9px 12px;display:flex;gap:9px;align-items:center">
+        <span style="width:10px;height:10px;border-radius:3px;background:#5fd0ef"></span>
+        <span style="width:10px;height:10px;border-radius:3px;background:#5ad69e"></span>
+        <span style="width:10px;height:10px;border-radius:3px;background:#f1b24a"></span>
+        <span style="font:600 11px/1 'IBM Plex Mono';color:#aab3c0">3 Ebenen aktiv</span>
+      </div>
+      <div style="height:52px;padding:0 20px;border-radius:16px;background:#46c8e6;display:flex;align-items:center;gap:8px;box-shadow:0 10px 26px -6px rgba(70,200,230,.55)"><span style="font:300 26px/1 'IBM Plex Sans';color:#06232b">+</span><span style="font:600 15px/1 'IBM Plex Sans';color:#06232b">Schild</span></div>
+    </div>
+
+    <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.45);z-index:20"></div>
+  </div>
+</div>
+
+<!-- ============================ SCREEN 02 — EBENEN ============================ -->
+<div style="position:absolute;left:1170px;top:0;width:390px">
+  <div data-drags-parent="1" style="font:600 12px/1 'IBM Plex Mono';color:#7c8593;text-transform:uppercase;letter-spacing:.14em;margin-bottom:14px">02 · Ebenen-Filter</div>
+  <div style="width:390px;height:844px;border-radius:42px;overflow:hidden;background:#0e1116;border:1px solid rgba(255,255,255,.1);box-shadow:0 30px 80px -24px rgba(0,0,0,.65);position:relative;color:#eef1f5;font-family:'IBM Plex Sans',sans-serif">
+
+    <div style="position:absolute;inset:0;background:radial-gradient(130% 90% at 50% 0%,#12171f,#0b0e13)">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:36px 36px"></div>
+      <svg viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%"><path d="M-20 190 C120 270 150 430 270 480 S430 680 400 900" fill="none" stroke="#11242b" stroke-width="32" stroke-linecap="round"></path></svg>
+    </div>
+    <!-- dim -->
+    <div style="position:absolute;inset:0;background:rgba(8,10,13,.58);z-index:7"></div>
+
+    <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:absolute;top:0;left:0;right:0;z-index:10"><span style="font:600 14px/1 'IBM Plex Sans'">9:41</span><div style="display:flex;gap:7px;align-items:center"><div style="display:flex;gap:1.5px;align-items:flex-end;height:11px"><span style="width:3px;height:4px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:6px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:8px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:11px;background:#eef1f5;border-radius:1px"></span></div><div style="width:22px;height:11px;border:1.4px solid #eef1f5;border-radius:3px;position:relative;padding:1.5px"><div style="width:72%;height:100%;background:#eef1f5;border-radius:1px"></div></div></div></div>
+
+    <!-- sheet -->
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:9;background:#1a1f27;border-radius:24px 24px 0 0;border-top:1px solid rgba(255,255,255,.09);box-shadow:0 -24px 60px rgba(0,0,0,.55);padding-bottom:28px">
+      <div style="width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.22);margin:11px auto 0"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px"><span style="font:600 19px/1 'IBM Plex Sans'">Ebenen</span><div style="width:30px;height:30px;border-radius:50%;background:#232932;display:flex;align-items:center;justify-content:center;font:400 17px/1 'IBM Plex Sans';color:#9aa4b2">✕</div></div>
+
+      <!-- rows -->
+      <div style="display:flex;align-items:center;gap:13px;padding:13px 20px;border-top:1px solid rgba(255,255,255,.05)"><div style="width:36px;height:36px;border-radius:10px;background:rgba(95,208,239,.16);border:1px solid rgba(95,208,239,.4);display:flex;align-items:center;justify-content:center;flex:none"><div style="width:12px;height:12px;border-radius:3px;background:#5fd0ef"></div></div><div style="flex:1"><div style="font-size:14.5px;font-weight:600">Schifffahrtszeichen</div><div style="font:500 11px/1 'IBM Plex Mono';color:#79828f;margin-top:4px">Binnen + See · Katalog 88</div></div><div style="width:46px;height:27px;border-radius:14px;background:#46c8e6;position:relative;flex:none"><div style="position:absolute;top:2.5px;right:2.5px;width:22px;height:22px;border-radius:50%;background:#06232b"></div></div></div>
+
+      <div style="display:flex;align-items:center;gap:13px;padding:13px 20px;border-top:1px solid rgba(255,255,255,.05)"><div style="width:36px;height:36px;border-radius:10px;background:rgba(90,214,158,.16);border:1px solid rgba(90,214,158,.4);display:flex;align-items:center;justify-content:center;flex:none"><div style="width:12px;height:12px;border-radius:50%;background:#5ad69e"></div></div><div style="flex:1"><div style="font-size:14.5px;font-weight:600">Slipstellen &amp; Häfen</div><div style="font:500 11px/1 'IBM Plex Mono';color:#79828f;margin-top:4px">Bootsrampen · Marinas</div></div><div style="width:46px;height:27px;border-radius:14px;background:#46c8e6;position:relative;flex:none"><div style="position:absolute;top:2.5px;right:2.5px;width:22px;height:22px;border-radius:50%;background:#06232b"></div></div></div>
+
+      <div style="display:flex;align-items:center;gap:13px;padding:13px 20px;border-top:1px solid rgba(255,255,255,.05)"><div style="width:36px;height:36px;border-radius:10px;background:rgba(241,178,74,.16);border:1px solid rgba(241,178,74,.4);display:flex;align-items:center;justify-content:center;flex:none"><div style="width:14px;height:3px;border-radius:2px;background:#f1b24a"></div></div><div style="flex:1"><div style="font-size:14.5px;font-weight:600">Wasserski-Strecken</div><div style="font:500 11px/1 'IBM Plex Mono';color:#79828f;margin-top:4px">83 Regionen</div></div><div style="width:46px;height:27px;border-radius:14px;background:#46c8e6;position:relative;flex:none"><div style="position:absolute;top:2.5px;right:2.5px;width:22px;height:22px;border-radius:50%;background:#06232b"></div></div></div>
+
+      <div style="display:flex;align-items:center;gap:13px;padding:13px 20px;border-top:1px solid rgba(255,255,255,.05);opacity:.62"><div style="width:36px;height:36px;border-radius:10px;background:rgba(154,169,187,.14);border:1px solid rgba(154,169,187,.32);display:flex;align-items:center;justify-content:center;flex:none"><div style="width:10px;height:10px;background:#9aa9bb;transform:rotate(45deg)"></div></div><div style="flex:1"><div style="font-size:14.5px;font-weight:600">Flusskilometer</div><div style="font:500 11px/1 'IBM Plex Mono';color:#79828f;margin-top:4px">713 Marken</div></div><div style="width:46px;height:27px;border-radius:14px;background:#2b313b;position:relative;flex:none"><div style="position:absolute;top:2.5px;left:2.5px;width:22px;height:22px;border-radius:50%;background:#5b636e"></div></div></div>
+
+      <div style="display:flex;align-items:center;gap:13px;padding:13px 20px;border-top:1px solid rgba(255,255,255,.05);opacity:.62"><div style="width:36px;height:36px;border-radius:10px;background:rgba(199,155,240,.14);border:1px solid rgba(199,155,240,.32);display:flex;align-items:center;justify-content:center;flex:none"><div style="width:12px;height:12px;border-radius:50% 50% 50% 0;background:#c79bf0;transform:rotate(-45deg)"></div></div><div style="flex:1"><div style="font-size:14.5px;font-weight:600">Windsurf-Verleih</div><div style="font:500 11px/1 'IBM Plex Mono';color:#79828f;margin-top:4px">202 Orte</div></div><div style="width:46px;height:27px;border-radius:14px;background:#2b313b;position:relative;flex:none"><div style="position:absolute;top:2.5px;left:2.5px;width:22px;height:22px;border-radius:50%;background:#5b636e"></div></div></div>
+
+      <div style="display:flex;align-items:center;gap:13px;padding:13px 20px;border-top:1px solid rgba(255,255,255,.05);opacity:.62"><div style="width:36px;height:36px;border-radius:10px;background:rgba(70,208,203,.14);border:1px solid rgba(70,208,203,.32);display:flex;align-items:center;justify-content:center;flex:none"><div style="width:12px;height:12px;border-radius:50% 50% 50% 0;background:#46d0cb;transform:rotate(-45deg)"></div></div><div style="flex:1"><div style="font-size:14.5px;font-weight:600">SUP-Verleih</div><div style="font:500 11px/1 'IBM Plex Mono';color:#79828f;margin-top:4px">458 · nur an Badeseen</div></div><div style="width:46px;height:27px;border-radius:14px;background:#2b313b;position:relative;flex:none"><div style="position:absolute;top:2.5px;left:2.5px;width:22px;height:22px;border-radius:50%;background:#5b636e"></div></div></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px 4px;border-top:1px solid rgba(255,255,255,.05);margin-top:4px"><span style="font:500 11px/1.4 'IBM Plex Mono';color:#6b7480">≈ 6.200 Spots vorberechnet<br>Sync alle 30 s</span><span style="font:600 12px/1 'IBM Plex Sans';color:#46c8e6">Alle ausblenden</span></div>
+    </div>
+
+    <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.45);z-index:20"></div>
+  </div>
+</div>
+
+<!-- ============================ SCREEN 03 — SCHILD SETZEN ============================ -->
+<div style="position:absolute;left:1640px;top:0;width:390px">
+  <div data-drags-parent="1" style="font:600 12px/1 'IBM Plex Mono';color:#7c8593;text-transform:uppercase;letter-spacing:.14em;margin-bottom:14px">03 · Schild setzen (Modus)</div>
+  <div style="width:390px;height:844px;border-radius:42px;overflow:hidden;background:#0e1116;border:1px solid rgba(255,255,255,.1);box-shadow:0 30px 80px -24px rgba(0,0,0,.65);position:relative;color:#eef1f5;font-family:'IBM Plex Sans',sans-serif">
+
+    <div style="position:absolute;inset:0;background:radial-gradient(130% 90% at 50% 0%,#12171f,#0b0e13)">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:36px 36px"></div>
+      <svg viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%"><path d="M-20 190 C120 270 150 430 270 480 S430 680 400 900" fill="none" stroke="#11242b" stroke-width="32" stroke-linecap="round"></path></svg>
+      <div style="position:absolute;inset:0;background:rgba(239,106,90,.05)"></div>
+    </div>
+
+    <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:absolute;top:0;left:0;right:0;z-index:10"><span style="font:600 14px/1 'IBM Plex Sans'">9:41</span><div style="display:flex;gap:7px;align-items:center"><div style="display:flex;gap:1.5px;align-items:flex-end;height:11px"><span style="width:3px;height:4px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:6px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:8px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:11px;background:#eef1f5;border-radius:1px"></span></div><div style="width:22px;height:11px;border:1.4px solid #eef1f5;border-radius:3px;position:relative;padding:1.5px"><div style="width:72%;height:100%;background:#eef1f5;border-radius:1px"></div></div></div></div>
+
+    <!-- menu stays reachable -->
+    <div style="position:absolute;top:50px;left:12px;width:44px;height:44px;border-radius:13px;background:#171b22;border:1px solid rgba(255,255,255,.09);display:flex;flex-direction:column;gap:3.5px;align-items:center;justify-content:center;z-index:8"><span style="width:16px;height:2px;background:#cdd4dd;border-radius:2px"></span><span style="width:16px;height:2px;background:#cdd4dd;border-radius:2px"></span><span style="width:16px;height:2px;background:#cdd4dd;border-radius:2px"></span></div>
+
+    <!-- alert banner (leaves room for menu on the left) -->
+    <div style="position:absolute;top:50px;left:68px;right:12px;background:#ef6a5a;border-radius:13px;padding:9px 10px 9px 13px;display:flex;align-items:center;gap:10px;z-index:8;box-shadow:0 10px 26px -8px rgba(239,106,90,.6)">
+      <div style="flex:1"><div style="font:700 12.5px/1.2 'IBM Plex Sans';color:#3a0f0a">Schild setzen</div><div style="font:500 11px/1.3 'IBM Plex Sans';color:#5c1a12;margin-top:2px">Tippe auf die gewünschte Stelle</div></div>
+      <div style="height:34px;padding:0 12px;border-radius:9px;background:rgba(58,15,10,.22);display:flex;align-items:center;gap:6px;flex:none"><span style="font:600 13px/1 'IBM Plex Sans';color:#3a0f0a">✕</span><span style="font:600 12px/1 'IBM Plex Sans';color:#3a0f0a">Abbrechen</span></div>
+    </div>
+
+    <!-- crosshair -->
+    <div style="position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);z-index:6">
+      <div style="width:74px;height:74px;border-radius:50%;border:2px dashed rgba(239,106,90,.55);display:flex;align-items:center;justify-content:center;background:rgba(239,106,90,.08)">
+        <div style="width:46px;height:46px;border-radius:50%;border:2px solid #ef6a5a;background:rgba(14,17,22,.6);position:relative;display:flex;align-items:center;justify-content:center">
+          <span style="position:absolute;width:2px;height:22px;background:#ef6a5a"></span><span style="position:absolute;height:2px;width:22px;background:#ef6a5a"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- bottom hint -->
+    <div style="position:absolute;left:12px;right:12px;bottom:34px;display:flex;justify-content:center;z-index:6"><div style="background:rgba(20,24,30,.85);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:11px 16px;font:500 12px/1 'IBM Plex Mono';color:#aab3c0">Stelle wählen → Schild aus Katalog</div></div>
+
+    <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.45);z-index:20"></div>
+  </div>
+</div>
+
+<!-- ============================ SCREEN 04 — KATALOG ============================ -->
+<div style="position:absolute;left:2110px;top:0;width:390px">
+  <div data-drags-parent="1" style="font:600 12px/1 'IBM Plex Mono';color:#7c8593;text-transform:uppercase;letter-spacing:.14em;margin-bottom:14px">04 · Schild-Katalog</div>
+  <div style="width:390px;height:844px;border-radius:42px;overflow:hidden;background:#0e1116;border:1px solid rgba(255,255,255,.1);box-shadow:0 30px 80px -24px rgba(0,0,0,.65);position:relative;color:#eef1f5;font-family:'IBM Plex Sans',sans-serif">
+
+    <div style="position:absolute;inset:0;background:radial-gradient(130% 90% at 50% 0%,#12171f,#0b0e13)"></div>
+    <div style="position:absolute;inset:0;background:rgba(8,10,13,.62);z-index:7"></div>
+
+    <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:absolute;top:0;left:0;right:0;z-index:10"><span style="font:600 14px/1 'IBM Plex Sans'">9:41</span><div style="display:flex;gap:7px;align-items:center"><div style="display:flex;gap:1.5px;align-items:flex-end;height:11px"><span style="width:3px;height:4px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:6px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:8px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:11px;background:#eef1f5;border-radius:1px"></span></div><div style="width:22px;height:11px;border:1.4px solid #eef1f5;border-radius:3px;position:relative;padding:1.5px"><div style="width:72%;height:100%;background:#eef1f5;border-radius:1px"></div></div></div></div>
+
+    <!-- sheet (tall) -->
+    <div style="position:absolute;left:0;right:0;top:96px;bottom:0;z-index:9;background:#1a1f27;border-radius:24px 24px 0 0;border-top:1px solid rgba(255,255,255,.09);box-shadow:0 -24px 60px rgba(0,0,0,.55);display:flex;flex-direction:column">
+      <div style="width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.22);margin:11px auto 0"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 20px 10px"><span style="font:600 18px/1 'IBM Plex Sans'">Schild auswählen</span><div style="width:30px;height:30px;border-radius:50%;background:#232932;display:flex;align-items:center;justify-content:center;font:400 17px/1 'IBM Plex Sans';color:#9aa4b2">✕</div></div>
+
+      <!-- search + segmented -->
+      <div style="padding:0 20px;display:flex;gap:9px;align-items:center">
+        <div style="flex:1;height:40px;border-radius:11px;background:#11151b;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px;padding:0 12px"><div style="width:13px;height:13px;border:2px solid #79828f;border-radius:50%;flex:none"></div><span style="font-size:13px;color:#79828f">Schild suchen …</span></div>
+      </div>
+      <div style="padding:11px 20px 4px;display:flex;gap:6px"><div style="flex:1;height:32px;border-radius:9px;background:#46c8e6;display:flex;align-items:center;justify-content:center;font:600 12.5px/1 'IBM Plex Sans';color:#06232b">Binnen</div><div style="flex:1;height:32px;border-radius:9px;background:#232932;display:flex;align-items:center;justify-content:center;font:600 12.5px/1 'IBM Plex Sans';color:#9aa4b2">See</div></div>
+
+      <div style="flex:1;overflow:hidden;padding:6px 20px 0">
+        <!-- häufig -->
+        <div style="display:flex;align-items:center;gap:7px;margin:8px 0 10px"><span style="color:#f1b24a;font-size:12px">★</span><span style="font:600 11px/1 'IBM Plex Mono';color:#9aa4b2;text-transform:uppercase;letter-spacing:.1em">Häufig genutzt</span></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px">
+          <div style="background:#20262f;border:1px solid rgba(241,178,74,.3);border-radius:12px;padding:9px 5px;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:34px;height:34px;border-radius:50%;background:#f4f4f4;border:4px solid #d23a2c;position:relative;flex:none"><div style="position:absolute;left:50%;top:50%;width:34px;height:4px;background:#d23a2c;transform:translate(-50%,-50%) rotate(45deg)"></div></div><span style="font:600 9px/1 'IBM Plex Mono';color:#cdd4dd">A.1</span></div>
+          <div style="background:#20262f;border:1px solid rgba(241,178,74,.3);border-radius:12px;padding:9px 5px;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:34px;height:34px;border-radius:50%;background:#f4f4f4;border:4px solid #d23a2c;position:relative;flex:none;display:flex;align-items:center;justify-content:center"><span style="font:700 13px/1 'IBM Plex Mono';color:#222">8</span></div><span style="font:600 9px/1 'IBM Plex Mono';color:#cdd4dd">B.6</span></div>
+          <div style="background:#20262f;border:1px solid rgba(241,178,74,.3);border-radius:12px;padding:9px 5px;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:34px;height:34px;border-radius:6px;background:#1f6fd6;border:2px solid #fff;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid #fff"></div></div><span style="font:600 9px/1 'IBM Plex Mono';color:#cdd4dd">A.17</span></div>
+          <div style="background:#20262f;border:1px solid rgba(241,178,74,.3);border-radius:12px;padding:9px 5px;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:34px;height:34px;border-radius:50%;background:#f4f4f4;border:4px solid #d23a2c;position:relative;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:18px;height:5px;background:#d23a2c;border-radius:1px"></div></div><span style="font:600 9px/1 'IBM Plex Mono';color:#cdd4dd">A.5.1</span></div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:7px;margin:18px 0 10px"><span style="font:600 11px/1 'IBM Plex Mono';color:#9aa4b2;text-transform:uppercase;letter-spacing:.1em">Alle Zeichen · Binnen</span></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <div style="background:#20262f;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:11px 7px;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center"><div style="width:36px;height:36px;border-radius:50%;background:#d23a2c;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:21px;height:5px;background:#fff;border-radius:1px"></div></div><span style="font:600 10px/1 'IBM Plex Mono';color:#cdd4dd">A.1</span><span style="font-size:9.5px;line-height:1.2;color:#79828f;word-break:break-word;hyphens:auto">Einfahrt verboten</span></div>
+          <div style="background:#20262f;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:11px 7px;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center"><div style="width:36px;height:36px;border-radius:50%;background:#f4f4f4;border:4px solid #d23a2c;position:relative;flex:none"><div style="position:absolute;left:50%;top:50%;width:36px;height:4px;background:#d23a2c;transform:translate(-50%,-50%) rotate(45deg)"></div></div><span style="font:600 10px/1 'IBM Plex Mono';color:#cdd4dd">A.5.1</span><span style="font-size:9.5px;line-height:1.2;color:#79828f;word-break:break-word;hyphens:auto">Stillliege­verbot</span></div>
+          <div style="background:#20262f;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:11px 7px;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center"><div style="width:36px;height:36px;border-radius:50%;background:#f4f4f4;border:4px solid #d23a2c;position:relative;flex:none;display:flex;align-items:center;justify-content:center"><span style="font:700 14px/1 'IBM Plex Mono';color:#222">8</span></div><span style="font:600 10px/1 'IBM Plex Mono';color:#cdd4dd">B.6</span><span style="font-size:9.5px;line-height:1.2;color:#79828f;word-break:break-word;hyphens:auto">Geschwindig­keit</span></div>
+          <div style="background:#20262f;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:11px 7px;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center"><div style="width:36px;height:36px;border-radius:6px;background:#1f6fd6;border:2px solid #fff;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:12px solid #fff"></div></div><span style="font:600 10px/1 'IBM Plex Mono';color:#cdd4dd">A.17</span><span style="font-size:9.5px;line-height:1.2;color:#79828f;word-break:break-word;hyphens:auto">Segelsurfen</span></div>
+          <div style="background:#20262f;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:11px 7px;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center"><div style="width:36px;height:36px;border-radius:6px;background:#1f6fd6;border:2px solid #fff;flex:none"></div><span style="font:600 10px/1 'IBM Plex Mono';color:#cdd4dd">E.1</span><span style="font-size:9.5px;line-height:1.2;color:#79828f;word-break:break-word;hyphens:auto">Erlaubnis / Hinweis</span></div>
+          <div style="background:#20262f;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:11px 7px;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center"><div style="width:36px;height:36px;border-radius:50%;background:#f4f4f4;border:4px solid #d23a2c;position:relative;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:14px;height:14px;border:2.5px solid #222;border-radius:50%"></div></div><span style="font:600 10px/1 'IBM Plex Mono';color:#cdd4dd">A.9</span><span style="font-size:9.5px;line-height:1.2;color:#79828f;word-break:break-word;hyphens:auto">Wellenschlag verm.</span></div>
+        </div>
+      </div>
+
+      <div style="padding:10px 20px;border-top:1px solid rgba(255,255,255,.06);font:500 10px/1.4 'IBM Plex Mono';color:#6b7480;background:#161a21">88 Zeichen · Pictogramme aus data/signs/ · häufig genutzte oben</div>
+    </div>
+
+    <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.45);z-index:20"></div>
+  </div>
+</div>
+
+<!-- ============================ SCREEN 05 — STRECKE ============================ -->
+<div style="position:absolute;left:2580px;top:0;width:390px">
+  <div data-drags-parent="1" style="font:600 12px/1 'IBM Plex Mono';color:#7c8593;text-transform:uppercase;letter-spacing:.14em;margin-bottom:14px">05 · Wasserski-Strecke</div>
+  <div style="width:390px;height:844px;border-radius:42px;overflow:hidden;background:#0e1116;border:1px solid rgba(255,255,255,.1);box-shadow:0 30px 80px -24px rgba(0,0,0,.65);position:relative;color:#eef1f5;font-family:'IBM Plex Sans',sans-serif">
+
+    <div style="position:absolute;inset:0;background:radial-gradient(130% 90% at 50% 0%,#12171f,#0b0e13)">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:36px 36px"></div>
+      <svg viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%">
+        <path d="M-20 150 C120 230 150 360 270 410 S430 600 400 820" fill="none" stroke="#11242b" stroke-width="32" stroke-linecap="round"></path>
+        <path d="M40 215 C150 280 165 360 250 400" fill="none" stroke="#f1b24a" stroke-width="6" stroke-linecap="round" opacity="0.9"></path>
+        <circle cx="40" cy="215" r="6" fill="#f1b24a" stroke="#0e1116" stroke-width="2"></circle>
+        <circle cx="250" cy="400" r="6" fill="#f1b24a" stroke="#0e1116" stroke-width="2"></circle>
+      </svg>
+      <!-- km marks along -->
+      <div style="position:absolute;left:25%;top:30%;display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;background:#9aa9bb;transform:rotate(45deg)"></div><span style="font:600 8.5px/1 'IBM Plex Mono';color:#aeb8c4;background:rgba(0,0,0,.45);padding:2px 4px;border-radius:3px">km 580</span></div>
+      <div style="position:absolute;left:52%;top:44%;display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;background:#9aa9bb;transform:rotate(45deg)"></div><span style="font:600 8.5px/1 'IBM Plex Mono';color:#aeb8c4;background:rgba(0,0,0,.45);padding:2px 4px;border-radius:3px">km 585</span></div>
+    </div>
+
+    <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:absolute;top:0;left:0;right:0;z-index:10"><span style="font:600 14px/1 'IBM Plex Sans'">9:41</span><div style="display:flex;gap:7px;align-items:center"><div style="display:flex;gap:1.5px;align-items:flex-end;height:11px"><span style="width:3px;height:4px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:6px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:8px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:11px;background:#eef1f5;border-radius:1px"></span></div><div style="width:22px;height:11px;border:1.4px solid #eef1f5;border-radius:3px;position:relative;padding:1.5px"><div style="width:72%;height:100%;background:#eef1f5;border-radius:1px"></div></div></div></div>
+
+    <!-- back chip -->
+    <div style="position:absolute;top:50px;left:12px;height:44px;padding:0 14px;border-radius:13px;background:#171b22;border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;gap:8px;z-index:8"><span style="font:300 18px/1 'IBM Plex Sans';color:#cdd4dd">‹</span><span style="font:600 13px/1 'IBM Plex Sans';color:#cdd4dd">Karte</span></div>
+
+    <!-- detail sheet -->
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:9;background:#1a1f27;border-radius:24px 24px 0 0;border-top:1px solid rgba(255,255,255,.09);box-shadow:0 -24px 60px rgba(0,0,0,.55);padding:0 20px 30px">
+      <div style="width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.22);margin:11px auto 16px"></div>
+      <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(241,178,74,.14);border:1px solid rgba(241,178,74,.4);border-radius:8px;padding:5px 10px"><span style="width:8px;height:8px;border-radius:2px;background:#f1b24a"></span><span style="font:600 11px/1 'IBM Plex Mono';color:#f1b24a;text-transform:uppercase;letter-spacing:.08em">Wasserski-Strecke</span></div>
+      <div style="font:700 23px/1.15 'IBM Plex Sans';margin-top:12px;letter-spacing:-.01em">Elbe — Geesthacht</div>
+      <div style="display:flex;gap:22px;margin-top:14px">
+        <div><div style="font:500 10px/1 'IBM Plex Mono';color:#79828f;text-transform:uppercase;letter-spacing:.1em">Bereich</div><div style="font:600 15px/1 'IBM Plex Mono';color:#eef1f5;margin-top:6px">km 580–585</div></div>
+        <div><div style="font:500 10px/1 'IBM Plex Mono';color:#79828f;text-transform:uppercase;letter-spacing:.1em">Länge</div><div style="font:600 15px/1 'IBM Plex Mono';color:#eef1f5;margin-top:6px">≈ 5 km</div></div>
+        <div><div style="font:500 10px/1 'IBM Plex Mono';color:#79828f;text-transform:uppercase;letter-spacing:.1em">Gewässer</div><div style="font:600 15px/1 'IBM Plex Mono';color:#eef1f5;margin-top:6px">Elbe</div></div>
+      </div>
+      <div style="margin-top:16px;background:rgba(241,178,74,.1);border:1px solid rgba(241,178,74,.28);border-radius:12px;padding:12px 13px;display:flex;gap:10px">
+        <span style="color:#f1b24a;font-size:14px;line-height:1.3">⚠</span>
+        <span style="font-size:12.5px;line-height:1.5;color:#cdb98a">Verlauf näherungsweise. Saubere km-Linien nur für <b style="color:#f1d9a8">Main 0–110</b> (OSM-Datenlage). Bereich als Recherche-Hinweis.</span>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <div style="flex:1;height:48px;border-radius:13px;background:#46c8e6;display:flex;align-items:center;justify-content:center;gap:7px"><span style="font:600 14px/1 'IBM Plex Sans';color:#06232b">Route</span></div>
+        <div style="flex:1;height:48px;border-radius:13px;background:#232932;border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;justify-content:center"><span style="font:600 14px/1 'IBM Plex Sans';color:#cdd4dd">Teilen</span></div>
+      </div>
+      <div style="margin-top:14px;font:500 10px/1.5 'IBM Plex Mono';color:#6b7480">Quelle: Recherche · Nominatim-Geocoding · OSM km-Marken</div>
+    </div>
+
+    <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.45);z-index:20"></div>
+  </div>
+</div>
+
+<!-- ============================ SCREEN 06 — SPOT DETAIL ============================ -->
+<div style="position:absolute;left:3050px;top:0;width:390px">
+  <div data-drags-parent="1" style="font:600 12px/1 'IBM Plex Mono';color:#7c8593;text-transform:uppercase;letter-spacing:.14em;margin-bottom:14px">06 · Spot-Detail</div>
+  <div style="width:390px;height:844px;border-radius:42px;overflow:hidden;background:#0e1116;border:1px solid rgba(255,255,255,.1);box-shadow:0 30px 80px -24px rgba(0,0,0,.65);position:relative;color:#eef1f5;font-family:'IBM Plex Sans',sans-serif">
+
+    <div style="position:absolute;inset:0;background:radial-gradient(130% 90% at 50% 0%,#12171f,#0b0e13)">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:36px 36px"></div>
+      <svg viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%"><path d="M-20 190 C120 270 150 430 270 480 S430 680 400 900" fill="none" stroke="#11242b" stroke-width="32" stroke-linecap="round"></path></svg>
+      <!-- selected pin highlighted -->
+      <div style="position:absolute;left:50%;top:34%;transform:translate(-50%,-100%)">
+        <div style="position:absolute;left:50%;top:100%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:rgba(95,208,239,.18);border:1px solid rgba(95,208,239,.4)"></div>
+        <div style="width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#5fd0ef;box-shadow:0 4px 12px rgba(0,0,0,.6);border:2px solid #fff;display:flex;align-items:center;justify-content:center"><div style="width:9px;height:9px;background:#0e1116;border-radius:2px;transform:rotate(45deg)"></div></div>
+      </div>
+    </div>
+
+    <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:absolute;top:0;left:0;right:0;z-index:10"><span style="font:600 14px/1 'IBM Plex Sans'">9:41</span><div style="display:flex;gap:7px;align-items:center"><div style="display:flex;gap:1.5px;align-items:flex-end;height:11px"><span style="width:3px;height:4px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:6px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:8px;background:#eef1f5;border-radius:1px"></span><span style="width:3px;height:11px;background:#eef1f5;border-radius:1px"></span></div><div style="width:22px;height:11px;border:1.4px solid #eef1f5;border-radius:3px;position:relative;padding:1.5px"><div style="width:72%;height:100%;background:#eef1f5;border-radius:1px"></div></div></div></div>
+
+    <div style="position:absolute;top:50px;left:12px;height:44px;padding:0 14px;border-radius:13px;background:#171b22;border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;gap:8px;z-index:8"><span style="font:300 18px/1 'IBM Plex Sans';color:#cdd4dd">‹</span><span style="font:600 13px/1 'IBM Plex Sans';color:#cdd4dd">Karte</span></div>
+
+    <!-- detail sheet -->
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:9;background:#1a1f27;border-radius:24px 24px 0 0;border-top:1px solid rgba(255,255,255,.09);box-shadow:0 -24px 60px rgba(0,0,0,.55);padding:0 20px 30px">
+      <div style="width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.22);margin:11px auto 16px"></div>
+      <div style="display:flex;gap:15px;align-items:center">
+        <div style="width:60px;height:60px;border-radius:14px;background:#f4f4f4;border:5px solid #d23a2c;position:relative;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:16px solid #d23a2c"></div></div>
+        <div style="flex:1">
+          <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(95,208,239,.14);border:1px solid rgba(95,208,239,.4);border-radius:7px;padding:4px 9px"><span style="width:7px;height:7px;border-radius:2px;background:#5fd0ef"></span><span style="font:600 10px/1 'IBM Plex Mono';color:#5fd0ef;text-transform:uppercase;letter-spacing:.08em">Schifffahrtszeichen</span></div>
+          <div style="font:700 19px/1.2 'IBM Plex Sans';margin-top:9px;letter-spacing:-.01em">A.17 · Segelsurfen</div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px;display:flex;flex-direction:column;gap:11px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:11px;border-bottom:1px solid rgba(255,255,255,.06)"><span style="font-size:13px;color:#79828f">Koordinaten</span><span style="font:500 13px/1 'IBM Plex Mono';color:#cdd4dd">53.4218°N · 10.3765°E</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:11px;border-bottom:1px solid rgba(255,255,255,.06)"><span style="font-size:13px;color:#79828f">Eingetragen von</span><span style="font:500 13px/1 'IBM Plex Mono';color:#cdd4dd">BK · vor 2 Tagen</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#79828f">Quelle</span><span style="display:inline-flex;align-items:center;gap:6px;font:500 12px/1 'IBM Plex Mono';color:#5ad69e"><span style="width:7px;height:7px;border-radius:50%;background:#5ad69e"></span>Geteilt · synchronisiert</span></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <div style="flex:1;height:48px;border-radius:13px;background:#46c8e6;display:flex;align-items:center;justify-content:center"><span style="font:600 14px/1 'IBM Plex Sans';color:#06232b">Route</span></div>
+        <div style="width:48px;height:48px;border-radius:13px;background:#232932;border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;justify-content:center"><div style="width:14px;height:14px;border:2px solid #cdd4dd;border-radius:3px;position:relative"><div style="position:absolute;-top:3px;top:-4px;left:2.5px;width:6px;height:6px;border:2px solid #cdd4dd;border-bottom:none;border-radius:3px 3px 0 0"></div></div></div>
+        <div style="width:48px;height:48px;border-radius:13px;background:rgba(239,106,90,.12);border:1px solid rgba(239,106,90,.3);display:flex;align-items:center;justify-content:center"><div style="width:13px;height:15px;border:1.6px solid #ef6a5a;border-top:none;border-radius:0 0 3px 3px;position:relative"><div style="position:absolute;top:-4px;left:-3px;right:-3px;height:1.6px;background:#ef6a5a"></div></div></div>
+      </div>
+      <div style="margin-top:12px;font:500 10px/1.5 'IBM Plex Mono';color:#6b7480">Löschen nur bei eigenen Einträgen möglich</div>
+    </div>
+
+    <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.45);z-index:20"></div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
