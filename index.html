@@ -138,8 +138,8 @@
   .sign .signimg{border:1px solid var(--line);border-radius:4px}
   .pcard img{flex:0 0 auto;border-radius:4px}
   .signfb{display:inline-flex;align-items:center;justify-content:center;background:#fff;color:#111;border:2px solid #d11;border-radius:4px;font:700 9px/1.05 var(--mono);text-align:center;padding:1px}
-  .usericon{filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));background:#fff;border-radius:5px;border:1px solid rgba(0,0,0,.25);box-sizing:content-box}
-  .statusdot{position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.55);z-index:2}
+  .usericon{filter:drop-shadow(0 0 1.5px rgba(255,255,255,.95)) drop-shadow(0 2px 3px rgba(0,0,0,.55));box-sizing:content-box}
+  .statusdot{position:absolute;top:-2px;left:-2px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.6);z-index:2}
   /* Karten-Stil: Dunkel = invertierte Original-OSM-Karte (volle Details, gut lesbar) · Hell = Original */
   body.map-dark .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.96) contrast(.9) saturate(.82)}
   body.map-light .leaflet-tile-pane{filter:none}
@@ -372,7 +372,7 @@ const labels = {slip:'Slipstelle', ski:'Wasserski / Wakeboard', jet:'Jetski-Bere
 let markerScale = +(localStorage.getItem('markerScale')) || 1;
 let signScale   = +(localStorage.getItem('signScale'))   || 1;
 
-function statusDot(confirmed){ return (confirmed===undefined)?'':`<span class="statusdot" style="background:${confirmed?'#34d058':'#ff5a5a'}"></span>`; }
+function statusDot(confirmed,sz){ if(confirmed===undefined) return ''; const d=Math.max(6,Math.round((sz||32)*0.26)); return `<span class="statusdot" style="width:${d}px;height:${d}px;background:${confirmed?'#34d058':'#ff5a5a'}"></span>`; }
 function teardropIcon(bg,glyph,scale,confirmed){
   scale = scale || markerScale;
   const sz=Math.round(28*scale), fs=Math.round(14*scale), tip=Math.round(sz*0.93);
@@ -380,7 +380,7 @@ function teardropIcon(bg,glyph,scale,confirmed){
     html:`<div style="position:relative;width:${sz}px;height:${sz}px"><div style="width:${sz}px;height:${sz}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
       background:${bg};border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.4);
       display:flex;align-items:center;justify-content:center">
-      <span style="transform:rotate(45deg);font-size:${fs}px">${glyph}</span></div>${statusDot(confirmed)}</div>`,
+      <span style="transform:rotate(45deg);font-size:${fs}px">${glyph}</span></div>${statusDot(confirmed,sz)}</div>`,
     iconSize:[sz,sz], iconAnchor:[sz/2,tip], popupAnchor:[0,-tip+2]});
 }
 function makeIcon(kind,scale){ return teardropIcon(colors[kind],icons[kind],scale); }
@@ -926,7 +926,7 @@ window.__toggleConfirm=async function(type,i){
 };
 
 const userSignLayer=L.layerGroup();
-function signMarkerIcon(code,sz,confirmed){sz=sz||32;return L.divIcon({className:'',html:`<div class="usericon" style="position:relative;width:${sz}px;height:${sz}px">${signImg(code,sz)}${statusDot(confirmed)}</div>`,iconSize:[sz+2,sz+2],iconAnchor:[(sz+2)/2,(sz+2)/2],popupAnchor:[0,-(sz+2)/2]});}
+function signMarkerIcon(code,sz,confirmed){sz=sz||32;return L.divIcon({className:'',html:`<div class="usericon" style="position:relative;width:${sz}px;height:${sz}px">${signImg(code,sz)}${statusDot(confirmed,sz)}</div>`,iconSize:[sz+2,sz+2],iconAnchor:[(sz+2)/2,(sz+2)/2],popupAnchor:[0,-(sz+2)/2]});}
 function renderUserSigns(){
   userSignLayer.clearLayers();
   userSigns.forEach((s,idx)=>{
