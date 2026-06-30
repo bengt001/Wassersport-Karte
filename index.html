@@ -139,8 +139,9 @@
   .pcard img{flex:0 0 auto;border-radius:4px}
   .signfb{display:inline-flex;align-items:center;justify-content:center;background:#fff;color:#111;border:2px solid #d11;border-radius:4px;font:700 9px/1.05 var(--mono);text-align:center;padding:1px}
   .usericon{filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));background:#fff;border-radius:5px;border:1px solid rgba(0,0,0,.25);box-sizing:content-box}
-  /* Karte heller & lesbarer (dunkler Stil war zu dunkel) */
-  .leaflet-tile-pane{filter:brightness(1.9) contrast(.98) saturate(1.3)}
+  /* Karten-Stil: Dunkel = invertierte Original-OSM-Karte (volle Details, gut lesbar) · Hell = Original */
+  body.map-dark .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.96) contrast(.9) saturate(.82)}
+  body.map-light .leaflet-tile-pane{filter:none}
   /* Mobile App-Shell: Topbar (Menü+Suche+Sync) und FAB – nur auf dem Handy */
   #topbar{display:none}
   #fab{display:none}
@@ -184,6 +185,14 @@
         <div class="searchbox">
           <input id="q" placeholder="Ort, See oder Adresse …" autocomplete="off">
           <button id="go">➜</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2>Kartendarstellung</h2>
+        <div class="catfilter" id="mapstyle">
+          <button class="catchip" data-style="map-light" type="button">☀️ Hell (Original)</button>
+          <button class="catchip" data-style="map-dark" type="button">🌙 Dunkel</button>
         </div>
       </div>
 
@@ -236,6 +245,7 @@
         </label>
         <button class="add" id="add-sign">➕ Schild an Stelle eintragen</button>
         <button class="amt" id="add-strk">📐 Wasserski-Strecke aus 2 Punkten</button>
+        <button class="ghost" id="add-poi">📍 Ort eintragen (Hafen, Slip, SUP …)</button>
         <button class="ghost" id="refresh-signs" style="display:none">🔄 Geteilte Schilder aktualisieren</button>
         <button class="amt" id="open-strk">📋 Wasserski-Strecken auflisten (amtlich)</button>
         <button class="ghost" id="locate">📍 Meinen Standort anzeigen</button>
@@ -246,12 +256,12 @@
         <h2>Symbolgröße</h2>
         <div class="sizerow">
           <label for="sz-signs">Verkehrsschilder &amp; Tonnen</label>
-          <input type="range" id="sz-signs" min="0.6" max="2.2" step="0.1" value="1">
+          <input type="range" id="sz-signs" min="0.3" max="2.2" step="0.05" value="1">
           <span class="szval" id="szval-signs">100 %</span>
         </div>
         <div class="sizerow">
           <label for="sz-markers">Slip · Jetski · SUP · Häfen …</label>
-          <input type="range" id="sz-markers" min="0.6" max="2.2" step="0.1" value="1">
+          <input type="range" id="sz-markers" min="0.3" max="2.2" step="0.05" value="1">
           <span class="szval" id="szval-markers">100 %</span>
         </div>
         <p class="legend-note">Lege den Fokus auf die Schilder/Tonnen oder auf die übrigen Markierungen, indem du die jeweilige Gruppe größer oder kleiner stellst.</p>
@@ -286,11 +296,22 @@
   <div id="fab-menu">
     <button data-act="sign" type="button">➕ Einzelnes Schild eintragen</button>
     <button data-act="strk" type="button">📐 Wasserski-Strecke aus 2 Punkten</button>
+    <button data-act="poi" type="button">📍 Ort eintragen (Hafen, Slip, SUP …)</button>
   </div>
 </div>
 
 <div class="modal-bg" id="detail-modal">
   <div class="modal"><div class="mbody"><button id="detail-close" class="sheet-x" type="button">✕</button><div id="detail-body"></div></div></div>
+</div>
+
+<div class="modal-bg" id="poi-modal">
+  <div class="modal">
+    <h3>Welchen Ort eintragen? <button id="close-poi" type="button">✕</button></h3>
+    <div class="mbody">
+      <p class="intro">Wähle die Art des Orts – danach tippst du die Stelle auf der Karte. Ideal, um z. B. im Ausland Häfen, Slipstellen oder Verleihstationen zu ergänzen.</p>
+      <div class="pickgrid" id="poigrid"></div>
+    </div>
+  </div>
 </div>
 
 <div class="modal-bg" id="pick-modal">
@@ -337,9 +358,9 @@
 <script>
 /* ---------- Karte ---------- */
 const map = L.map('map',{zoomControl:true,preferCanvas:true}).setView([51.2,10.2],6);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-  maxZoom:20, subdomains:'abcd',
-  attribution:'© OpenStreetMap-Mitwirkende · © CARTO'
+// Original-OSM-Kacheln; Dark-Mode wird per CSS-Filter über <body class="map-dark"> erzeugt
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19, attribution:'© OpenStreetMap-Mitwirkende (ODbL)'
 }).addTo(map);
 
 const colors = {slip:'#5ad69e', ski:'#f1b24a', jet:'#f0922e', harbor:'#43c08f'};
@@ -371,6 +392,36 @@ function clusterGroup(kind){
       className:'', iconSize:[38,38]})
   });
 }
+/* ===== Karten-Stil Hell/Dunkel umschalten ===== */
+function setMapMode(mode){
+  document.body.classList.remove('map-dark','map-light');
+  document.body.classList.add(mode);
+  localStorage.setItem('mapMode',mode);
+  document.querySelectorAll('#mapstyle .catchip').forEach(c=>c.classList.toggle('active',c.dataset.style===mode));
+}
+(function initMapStyle(){
+  setMapMode(localStorage.getItem('mapMode')||'map-dark');
+  document.querySelectorAll('#mapstyle .catchip').forEach(c=>c.addEventListener('click',()=>setMapMode(c.dataset.style)));
+})();
+
+/* ===== Kommentare / Notizen zu Punkten (lokal gespeichert) ===== */
+let spotNotes = JSON.parse(localStorage.getItem('spotNotes')||'{}');
+function saveNotes(){ localStorage.setItem('spotNotes',JSON.stringify(spotNotes)); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function noteFor(k){ return spotNotes[k]||''; }
+function noteBlock(k){
+  const n=noteFor(k);
+  const shown=n?`<div style="margin-top:8px;padding:7px 9px;background:rgba(70,200,230,.1);border:1px solid rgba(70,200,230,.3);border-radius:8px;font-size:12px;line-height:1.45;color:#cfe2f7;white-space:pre-wrap">📝 ${escapeHtml(n)}</div>`:'';
+  return `${shown}<br><button onclick="window.__editNote('${k}')" style="margin-top:6px;background:#232932;color:#cdd4dd;border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:12px">✏️ ${n?'Kommentar bearbeiten':'Kommentar hinzufügen'}</button>`;
+}
+window.__editNote=function(k){
+  const t=prompt('Kommentar / fehlende Infos zu diesem Punkt:', noteFor(k));
+  if(t===null) return;
+  if(t.trim()) spotNotes[k]=t.trim(); else delete spotNotes[k];
+  saveNotes(); closeDetail(); map.closePopup();
+  if(window.__lastSource){ try{ window.__lastSource.openPopup(); }catch(_){ } }
+};
+
 function popupHtml(kind,p,lat,lon){
   const name = p.name || labels[kind];
   let rows='';
@@ -378,8 +429,9 @@ function popupHtml(kind,p,lat,lon){
     if(p[k]) rows+=`<span class="pop-tag">${l}: ${p[k]}</span>`;
   const web = p.website ? `<br><a class="pop-link" href="${p.website}" target="_blank" rel="noopener">🌐 Website</a>` : '';
   const gmap=`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+  const key=`s|${kind}|${lat.toFixed(5)},${lon.toFixed(5)}`;
   return `<b>${name}</b><br><span style="color:#9fb6cf;font-size:12px">${labels[kind]}</span><br>${rows}
-    <a class="pop-link" href="${gmap}" target="_blank" rel="noopener">🧭 Route hierher</a>${web}`;
+    <a class="pop-link" href="${gmap}" target="_blank" rel="noopener">🧭 Route hierher</a>${web}${noteBlock(key)}`;
 }
 
 /* ---------- Daten laden ---------- */
@@ -593,7 +645,7 @@ function windPopup(p,lat,lon){
   if(p.phone) rows+=`<span class="pop-tag">Tel: ${p.phone}</span>`;
   const web=p.website?`<br><a class="pop-link" href="${p.website}" target="_blank" rel="noopener">🌐 Website</a>`:'';
   const gmap=`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
-  return `<b>${name}</b><br>${badge}${rows}<a class="pop-link" href="${gmap}" target="_blank" rel="noopener">🧭 Route hierher</a>${web}`;
+  return `<b>${name}</b><br>${badge}${rows}<a class="pop-link" href="${gmap}" target="_blank" rel="noopener">🧭 Route hierher</a>${web}${noteBlock('w|'+lat.toFixed(5)+','+lon.toFixed(5))}`;
 }
 function loadWind(){
   if(typeof window.WINDSURF==='undefined'){ document.getElementById('cnt-wind').textContent='0'; return; }
@@ -623,7 +675,7 @@ function supPopup(p,lat,lon){
   if(p.phone) rows+=`<span class="pop-tag">Tel: ${p.phone}</span>`;
   const web=p.website?`<br><a class="pop-link" href="${p.website}" target="_blank" rel="noopener">🌐 Website</a>`:'';
   const gmap=`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
-  return `<b>${name}</b><br>${tag}<br>${rows}<br><a class="pop-link" href="${gmap}" target="_blank" rel="noopener">🧭 Route hierher</a>${web}`;
+  return `<b>${name}</b><br>${tag}<br>${rows}<br><a class="pop-link" href="${gmap}" target="_blank" rel="noopener">🧭 Route hierher</a>${web}${noteBlock('u|'+lat.toFixed(5)+','+lon.toFixed(5))}`;
 }
 function loadSup(){
   if(typeof window.SUP==='undefined'){ document.getElementById('cnt-sup').textContent='0'; return; }
@@ -777,7 +829,7 @@ function renderUserSigns(){
     const by = (SHARED && s.author) ? ` · <b>${s.author}</b>` : '';
     const del = own ? `<br><button onclick="window.__delSign(${idx})" style="margin-top:8px;background:#c62828;color:#fff;border:0;border-radius:7px;padding:6px 11px;cursor:pointer">🗑 löschen</button>` : '';
     L.marker([s.lat,s.lon],{icon:signMarkerIcon(s.code,Math.round(34*signScale))})
-      .bindPopup(`<div style="text-align:center">${buildSign(e,52)}</div><b>${e.name}</b> <code style="color:var(--accent)">${e.tag||e.code}</code><br><span style="color:#9fb6cf;font-size:11px">${new Date(s.ts).toLocaleDateString('de-DE')}${by}</span>${del}`)
+      .bindPopup(`<div style="text-align:center">${buildSign(e,52)}</div><b>${e.name}</b> <code style="color:var(--accent)">${e.tag||e.code}</code><br><span style="color:#9fb6cf;font-size:11px">${new Date(s.ts).toLocaleDateString('de-DE')}${by}</span>${noteBlock('g|'+(s.id||s.ts))}${del}`)
       .addTo(userSignLayer);
   });
   document.getElementById('cnt-mine').textContent=userSigns.length;
@@ -792,20 +844,21 @@ window.__delSign=async function(i){
   userSigns.splice(i,1); saveSigns(); renderUserSigns(); map.closePopup(); closeDetail();
 };
 document.getElementById('ly-mine').addEventListener('change',e=>{
-  if(e.target.checked){ map.addLayer(userSignLayer); map.addLayer(userStrkLayer); }
-  else { map.removeLayer(userSignLayer); map.removeLayer(userStrkLayer); }
+  if(e.target.checked){ map.addLayer(userSignLayer); map.addLayer(userStrkLayer); map.addLayer(userPoiLayer); }
+  else { map.removeLayer(userSignLayer); map.removeLayer(userStrkLayer); map.removeLayer(userPoiLayer); }
 });
 
 // ===== Eintrag-Modi: Einzelschild + Wasserski-Strecke (2 Punkte) =====
 let addMode=false, pendingLatLng=null;        // Einzelschild
 let strkStep=0, strkA=null, strkTmp=null;     // Strecke: 0 aus · 1 Start · 2 Ende
+let poiMode=null;                             // Ort/POI eintragen: Kategorie-Key oder null
 const _banner=document.getElementById('addbanner');
 const _bannerSpan=_banner.querySelector('span');
 function bannerShow(text){ _bannerSpan.innerHTML=text; _banner.classList.add('show'); document.getElementById('map').classList.add('addmode'); document.getElementById('side').classList.remove('open'); }
 function bannerHide(){ _banner.classList.remove('show'); document.getElementById('map').classList.remove('addmode'); }
 function resetSignBtn(){ const b=document.getElementById('add-sign'); b.classList.remove('active'); b.textContent='➕ Schild an Stelle eintragen'; }
 function cancelModes(){
-  addMode=false; pendingLatLng=null; strkStep=0; strkA=null;
+  addMode=false; pendingLatLng=null; strkStep=0; strkA=null; poiMode=null;
   if(strkTmp){ map.removeLayer(strkTmp); strkTmp=null; }
   resetSignBtn(); bannerHide();
 }
@@ -819,6 +872,7 @@ document.getElementById('add-sign').addEventListener('click',()=>setAddMode(!add
 document.getElementById('add-strk').addEventListener('click',startStreckeMode);
 document.getElementById('cancel-add').addEventListener('click',cancelModes);
 map.on('click',e=>{
+  if(poiMode){ placePoi(e.latlng); return; }
   if(addMode){ pendingLatLng=e.latlng; addMode=false; bannerHide(); resetSignBtn(); openPick(); return; }
   if(strkStep===1){ strkA=e.latlng; strkTmp=L.marker(strkA,{icon:signMarkerIcon('E.17',30)}).addTo(map); strkStep=2; bannerShow('📐 Strecke: tippe den <b>Endpunkt</b> am Fluss'); return; }
   if(strkStep===2){ const b=e.latlng, a=strkA; strkStep=0; bannerHide(); if(strkTmp){ map.removeLayer(strkTmp); strkTmp=null; } buildStrecke(a,b); return; }
@@ -878,6 +932,7 @@ function applyMarkerScale(){
   spotMarkers.forEach(o=>o.m.setIcon(makeIcon(o.kind)));
   windMarkers.forEach(o=>o.m.setIcon(windIcon(o.rental)));
   supMarkers.forEach(o=>o.m.setIcon(supIcon()));
+  if(typeof renderUserPois==='function') renderUserPois();
 }
 (function initSizeControls(){
   const sM=document.getElementById('sz-markers'), lM=document.getElementById('szval-markers');
@@ -903,7 +958,10 @@ const isMobile=()=>window.matchMedia('(max-width:760px)').matches;
     fab.addEventListener('click',()=>menu.classList.toggle('open'));
     menu.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
       menu.classList.remove('open');
-      if(b.dataset.act==='sign') setAddMode(true); else startStreckeMode();
+      const act=b.dataset.act;
+      if(act==='sign') setAddMode(true);
+      else if(act==='strk') startStreckeMode();
+      else openPoiPicker();
     }));
   }
 })();
@@ -914,6 +972,7 @@ function closeDetail(){ document.getElementById('detail-modal').classList.remove
 document.getElementById('detail-close').addEventListener('click',closeDetail);
 document.getElementById('detail-modal').addEventListener('click',e=>{ if(e.target.id==='detail-modal') closeDetail(); });
 map.on('popupopen',e=>{
+  window.__lastSource=e.popup._source;
   if(!isMobile()) return;
   const node=e.popup._contentNode; const html=node?node.innerHTML:'';
   if(!html) return;
@@ -1031,13 +1090,70 @@ function renderUserStrecken(){
     const warn=s.approx?'<br><span style="color:#f1cf94;font-size:11px">⚠️ gerade Linie – kein Flusslauf gefunden</span>':'';
     const del=own?`<br><button onclick="window.__delStrk(${idx})" style="margin-top:8px;background:#c62828;color:#fff;border:0;border-radius:7px;padding:6px 11px;cursor:pointer">🗑 löschen</button>`:'';
     const pl=L.polyline(s.line,{color:'#f1b24a',weight:6,opacity:.95,lineCap:'round',lineJoin:'round',dashArray:s.approx?'10,8':null});
-    pl.bindPopup(`<b>Wasserski-Strecke</b> <code style="color:var(--accent)">E.17</code><br><span style="color:#9fb6cf;font-size:11px">${new Date(s.ts).toLocaleDateString('de-DE')}${by}</span>${warn}${del}`);
+    const popup=`<b>Wasserski-Strecke</b> <code style="color:var(--accent)">E.17</code><br><span style="color:#9fb6cf;font-size:11px">${new Date(s.ts).toLocaleDateString('de-DE')}${by}</span>${warn}${del}`;
+    pl.bindPopup(popup);
     userStrkLayer.addLayer(pl);
-    [s.a,s.b].forEach(pt=>userStrkLayer.addLayer(L.marker(pt,{icon:signMarkerIcon('E.17',Math.round(30*signScale))})));
+    [s.a,s.b].forEach((pt,wi)=>{
+      const mk=L.marker(pt,{icon:signMarkerIcon('E.17',Math.round(30*signScale))});
+      mk.bindPopup(`<b>Wasserski-Strecke</b> <code style="color:var(--accent)">E.17</code><br><span style="color:#9fb6cf;font-size:11px">${wi?'Endpunkt B':'Startpunkt A'} · ${new Date(s.ts).toLocaleDateString('de-DE')}${by}</span>${warn}${del}`);
+      userStrkLayer.addLayer(mk);
+    });
   });
 }
 window.__delStrk=function(i){ userStrecken.splice(i,1); saveStrecken(); renderUserStrecken(); map.closePopup(); closeDetail(); };
 map.addLayer(userStrkLayer); renderUserStrecken();
+
+/* ============ Eigene Orte/POIs eintragen (Hafen, Slip, SUP … – auch im Ausland) ============ */
+const POI_CATS=[
+  {key:'slip',  label:'Slipstelle',           color:'#5ad69e', glyph:'🛥️'},
+  {key:'harbor',label:'Hafen / Marina',       color:'#43c08f', glyph:'⚓'},
+  {key:'ski',   label:'Wasserski / Wakeboard',color:'#f1b24a', glyph:'🎿'},
+  {key:'jet',   label:'Jetski-Bereich',       color:'#f0922e', glyph:'🌊'},
+  {key:'wind',  label:'Windsurf',             color:'#c79bf0', glyph:'🏄'},
+  {key:'sup',   label:'SUP-Verleih',          color:'#46d0cb', glyph:'🛶'},
+  {key:'spot',  label:'Sonstiger Ort',        color:'#46c8e6', glyph:'📍'}
+];
+function poiCat(k){ return POI_CATS.find(c=>c.key===k)||POI_CATS[POI_CATS.length-1]; }
+let userPois = JSON.parse(localStorage.getItem('userPois')||'[]');
+const userPoiLayer = L.layerGroup();
+function savePois(){ localStorage.setItem('userPois',JSON.stringify(userPois)); }
+function poiIcon(cat){ const c=poiCat(cat); return teardropIcon(c.color,c.glyph); }
+function renderUserPois(){
+  userPoiLayer.clearLayers();
+  userPois.forEach((o,idx)=>{
+    const c=poiCat(o.cat), own=!SHARED||(o.author||'')===signAuthor;
+    const by=(SHARED&&o.author)?` · <b>${o.author}</b>`:'';
+    const del=own?`<br><button onclick="window.__delPoi(${idx})" style="margin-top:8px;background:#c62828;color:#fff;border:0;border-radius:7px;padding:6px 11px;cursor:pointer">🗑 löschen</button>`:'';
+    const gmap=`https://www.google.com/maps/dir/?api=1&destination=${o.lat},${o.lon}`;
+    const m=L.marker([o.lat,o.lon],{icon:poiIcon(o.cat)});
+    m.bindPopup(`<b>${escapeHtml(o.name||c.label)}</b><br><span style="color:#9fb6cf;font-size:12px">${c.glyph} ${c.label}${by}</span><br><a class="pop-link" href="${gmap}" target="_blank" rel="noopener">🧭 Route hierher</a>${noteBlock('p|'+o.ts)}${del}`);
+    userPoiLayer.addLayer(m);
+  });
+}
+window.__delPoi=function(i){ userPois.splice(i,1); savePois(); renderUserPois(); map.closePopup(); closeDetail(); };
+map.addLayer(userPoiLayer); renderUserPois();
+function startPoiMode(cat){ cancelModes(); poiMode=cat; const c=poiCat(cat); bannerShow(`📍 Tippe die Stelle für: <b>${c.glyph} ${escapeHtml(c.label)}</b>`); }
+function placePoi(latlng){
+  const cat=poiMode; poiMode=null; bannerHide();
+  const name=((prompt('Name / Bezeichnung des Orts (optional):','')||'').trim()).slice(0,80);
+  const rec={cat,name,lat:latlng.lat,lon:latlng.lng,ts:Date.now()};
+  if(SHARED) rec.author=ensureAuthor();
+  userPois.push(rec); savePois(); renderUserPois();
+  const cb=document.getElementById('ly-mine'); if(!cb.checked){ cb.checked=true; map.addLayer(userSignLayer); map.addLayer(userStrkLayer); map.addLayer(userPoiLayer); }
+  setStatus(`✅ Ort „${name||poiCat(cat).label}" eingetragen.`);
+}
+function openPoiPicker(){
+  cancelModes();
+  const g=document.getElementById('poigrid');
+  g.innerHTML=POI_CATS.map(c=>`<div class="pcard" data-cat="${c.key}"><span style="width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${c.color};border:2px solid #fff;display:flex;align-items:center;justify-content:center;flex:none"><span style="transform:rotate(45deg);font-size:15px">${c.glyph}</span></span><div class="pi"><b>${c.label}</b></div></div>`).join('');
+  g.querySelectorAll('.pcard').forEach(el=>el.addEventListener('click',()=>{ closePoiPicker(); startPoiMode(el.dataset.cat); }));
+  document.getElementById('poi-modal').classList.add('open');
+  document.getElementById('side').classList.remove('open');
+}
+function closePoiPicker(){ document.getElementById('poi-modal').classList.remove('open'); }
+document.getElementById('close-poi').addEventListener('click',closePoiPicker);
+document.getElementById('poi-modal').addEventListener('click',e=>{ if(e.target.id==='poi-modal') closePoiPicker(); });
+document.getElementById('add-poi').addEventListener('click',openPoiPicker);
 
 // Karten-Daten zuerst laden – robust, unabhängig vom Schilder-Teil
 loadData();
