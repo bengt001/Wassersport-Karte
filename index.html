@@ -139,6 +139,7 @@
   .pcard img{flex:0 0 auto;border-radius:4px}
   .signfb{display:inline-flex;align-items:center;justify-content:center;background:#fff;color:#111;border:2px solid #d11;border-radius:4px;font:700 9px/1.05 var(--mono);text-align:center;padding:1px}
   .usericon{filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));background:#fff;border-radius:5px;border:1px solid rgba(0,0,0,.25);box-sizing:content-box}
+  .statusdot{position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.55);z-index:2}
   /* Karten-Stil: Dunkel = invertierte Original-OSM-Karte (volle Details, gut lesbar) · Hell = Original */
   body.map-dark .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.96) contrast(.9) saturate(.82)}
   body.map-light .leaflet-tile-pane{filter:none}
@@ -371,14 +372,15 @@ const labels = {slip:'Slipstelle', ski:'Wasserski / Wakeboard', jet:'Jetski-Bere
 let markerScale = +(localStorage.getItem('markerScale')) || 1;
 let signScale   = +(localStorage.getItem('signScale'))   || 1;
 
-function teardropIcon(bg,glyph,scale){
+function statusDot(confirmed){ return (confirmed===undefined)?'':`<span class="statusdot" style="background:${confirmed?'#34d058':'#ff5a5a'}"></span>`; }
+function teardropIcon(bg,glyph,scale,confirmed){
   scale = scale || markerScale;
   const sz=Math.round(28*scale), fs=Math.round(14*scale), tip=Math.round(sz*0.93);
   return L.divIcon({className:'',
-    html:`<div style="width:${sz}px;height:${sz}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+    html:`<div style="position:relative;width:${sz}px;height:${sz}px"><div style="width:${sz}px;height:${sz}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
       background:${bg};border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.4);
       display:flex;align-items:center;justify-content:center">
-      <span style="transform:rotate(45deg);font-size:${fs}px">${glyph}</span></div>`,
+      <span style="transform:rotate(45deg);font-size:${fs}px">${glyph}</span></div>${statusDot(confirmed)}</div>`,
     iconSize:[sz,sz], iconAnchor:[sz/2,tip], popupAnchor:[0,-tip+2]});
 }
 function makeIcon(kind,scale){ return teardropIcon(colors[kind],icons[kind],scale); }
@@ -890,8 +892,41 @@ async function migrateLocalToShared(){
   loadEntries(true);
 }
 
+/* ===== Bestätigungs-Status (grün = bestätigt, rot = noch nicht) ===== */
+async function sbPatch(id,data){
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/entries?id=eq.${id}`,{method:'PATCH',headers:SB_HEAD,body:JSON.stringify({data})});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+}
+async function sbSignPatch(id,confirmed){
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/signs?id=eq.${id}`,{method:'PATCH',headers:SB_HEAD,body:JSON.stringify({confirmed})});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+}
+function confirmBlock(type,idx,confirmed){
+  const c=!!confirmed;
+  const lab=c?'✅ Bestätigt':'⚠️ Noch nicht bestätigt', col=c?'#34d058':'#ff8c42';
+  const btn=c?'↩︎ Bestätigung zurücknehmen':'✔ Ort bestätigen', bg=c?'#232932':'#1f9e57', fg=c?'#cdd4dd':'#fff';
+  return `<div style="margin-top:8px;font-size:11.5px;font-weight:600;color:${col}">${lab}</div>`+
+    `<button onclick="window.__toggleConfirm('${type}',${idx})" style="margin-top:5px;background:${bg};color:${fg};border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:6px 11px;cursor:pointer;font-size:12px">${btn}</button>`;
+}
+window.__toggleConfirm=async function(type,i){
+  const arr = type==='sign'?userSigns : type==='poi'?userPois : userStrecken;
+  const o=arr[i]; if(!o) return;
+  const nv=!o.confirmed;
+  if(SHARED){
+    try{
+      if(type==='sign') await sbSignPatch(o.id,nv);
+      else if(type==='poi') await sbPatch(o.id,{cat:o.cat,name:o.name,lat:o.lat,lon:o.lon,confirmed:nv});
+      else await sbPatch(o.id,{a:o.a,b:o.b,line:o.line,approx:o.approx,confirmed:nv});
+    }catch(e){ setStatus('⚠️ Bestätigung fehlgeschlagen: '+e.message+' – Update-Recht/Spalte in Supabase angelegt? (SETUP.md)'); return; }
+  }
+  o.confirmed=nv;
+  if(!SHARED){ if(type==='sign') saveSigns(); else if(type==='poi') savePois(); else saveStrecken(); }
+  if(type==='sign') renderUserSigns(); else if(type==='poi') renderUserPois(); else renderUserStrecken();
+  refreshOpenPopup();
+};
+
 const userSignLayer=L.layerGroup();
-function signMarkerIcon(code,sz){sz=sz||32;return L.divIcon({className:'',html:`<div class="usericon" style="width:${sz}px;height:${sz}px">${signImg(code,sz)}</div>`,iconSize:[sz+2,sz+2],iconAnchor:[(sz+2)/2,(sz+2)/2],popupAnchor:[0,-(sz+2)/2]});}
+function signMarkerIcon(code,sz,confirmed){sz=sz||32;return L.divIcon({className:'',html:`<div class="usericon" style="position:relative;width:${sz}px;height:${sz}px">${signImg(code,sz)}${statusDot(confirmed)}</div>`,iconSize:[sz+2,sz+2],iconAnchor:[(sz+2)/2,(sz+2)/2],popupAnchor:[0,-(sz+2)/2]});}
 function renderUserSigns(){
   userSignLayer.clearLayers();
   userSigns.forEach((s,idx)=>{
@@ -899,8 +934,8 @@ function renderUserSigns(){
     const own = !SHARED || (s.author||'')===signAuthor;
     const by = (SHARED && s.author) ? ` · <b>${s.author}</b>` : '';
     const del = own ? `<br><button onclick="window.__delSign(${idx})" style="margin-top:8px;background:#c62828;color:#fff;border:0;border-radius:7px;padding:6px 11px;cursor:pointer">🗑 löschen</button>` : '';
-    L.marker([s.lat,s.lon],{icon:signMarkerIcon(s.code,Math.round(34*signScale))})
-      .bindPopup(`<div style="text-align:center">${buildSign(e,52)}</div><b>${e.name}</b> <code style="color:var(--accent)">${e.tag||e.code}</code><br><span style="color:#9fb6cf;font-size:11px">${new Date(s.ts).toLocaleDateString('de-DE')}${by}</span>${noteBlock('g|'+(s.id||s.ts))}${del}`)
+    L.marker([s.lat,s.lon],{icon:signMarkerIcon(s.code,Math.round(34*signScale),!!s.confirmed)})
+      .bindPopup(`<div style="text-align:center">${buildSign(e,52)}</div><b>${e.name}</b> <code style="color:var(--accent)">${e.tag||e.code}</code><br><span style="color:#9fb6cf;font-size:11px">${new Date(s.ts).toLocaleDateString('de-DE')}${by}</span>${confirmBlock('sign',idx,!!s.confirmed)}${noteBlock('g|'+(s.id||s.ts))}${del}`)
       .addTo(userSignLayer);
   });
   document.getElementById('cnt-mine').textContent=userSigns.length;
@@ -980,12 +1015,14 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ cancelModes(); cl
 
 async function placeSign(code){
   if(!pendingLatLng) return;
-  const rec={lat:pendingLatLng.lat, lon:pendingLatLng.lng, code, ts:Date.now()};
+  const rec={lat:pendingLatLng.lat, lon:pendingLatLng.lng, code, ts:Date.now(), confirmed:true};
   signUsage[code]=(signUsage[code]||0)+1; saveSigns();
   if(SHARED){
     rec.author=ensureAuthor();
     try{
-      const r=await fetch(`${SUPABASE_URL}/rest/v1/signs`,{method:'POST',headers:{...SB_HEAD,'Prefer':'return=representation'},body:JSON.stringify(rec)});
+      let r=await fetch(`${SUPABASE_URL}/rest/v1/signs`,{method:'POST',headers:{...SB_HEAD,'Prefer':'return=representation'},body:JSON.stringify(rec)});
+      if(!r.ok){ const {confirmed,...bare}=rec; // evtl. Spalte „confirmed" noch nicht angelegt → ohne erneut
+        r=await fetch(`${SUPABASE_URL}/rest/v1/signs`,{method:'POST',headers:{...SB_HEAD,'Prefer':'return=representation'},body:JSON.stringify(bare)}); }
       if(!r.ok) throw new Error('HTTP '+r.status);
       const rows=await r.json(); userSigns.push(rows[0]||rec);
     }catch(e){ setStatus('⚠️ Speichern fehlgeschlagen: '+e.message); closePick(); return; }
@@ -1146,7 +1183,7 @@ async function buildStrecke(a,b){
   if(!line){ line=[[a.lat,a.lng],[b.lat,b.lng]]; approx=true;
     setStatus('⚠️ Kein zusammenhängender Flusslauf gefunden – vorerst als gerade Linie markiert (bitte prüfen).'); }
   else setStatus('✅ Wasserski-Strecke entlang des Flusslaufs eingezeichnet.');
-  const data={a:[a.lat,a.lng], b:[b.lat,b.lng], line, approx};
+  const data={a:[a.lat,a.lng], b:[b.lat,b.lng], line, approx, confirmed:true};
   if(SHARED){
     try{ const row=await sbPost('strk',data); userStrecken.push(sbRow(row)); }
     catch(e){ setStatus('⚠️ Strecke speichern fehlgeschlagen: '+e.message+' – Tabelle „entries" angelegt?'); }
@@ -1163,13 +1200,14 @@ function renderUserStrecken(){
     const by=(SHARED&&s.author)?` · <b>${s.author}</b>`:'';
     const warn=s.approx?'<br><span style="color:#f1cf94;font-size:11px">⚠️ gerade Linie – kein Flusslauf gefunden</span>':'';
     const del=own?`<br><button onclick="window.__delStrk(${idx})" style="margin-top:8px;background:#c62828;color:#fff;border:0;border-radius:7px;padding:6px 11px;cursor:pointer">🗑 löschen</button>`:'';
-    const pl=L.polyline(s.line,{color:'#f1b24a',weight:6,opacity:.95,lineCap:'round',lineJoin:'round',dashArray:s.approx?'10,8':null});
-    const popup=`<b>Wasserski-Strecke</b> <code style="color:var(--accent)">E.17</code><br><span style="color:#9fb6cf;font-size:11px">${new Date(s.ts).toLocaleDateString('de-DE')}${by}</span>${warn}${del}`;
-    pl.bindPopup(popup);
+    const conf=!!s.confirmed;
+    const pl=L.polyline(s.line,{color:'#f1b24a',weight:6,opacity:conf?.95:.5,lineCap:'round',lineJoin:'round',dashArray:s.approx?'10,8':null});
+    const cb=confirmBlock('strk',idx,conf);
+    pl.bindPopup(`<b>Wasserski-Strecke</b> <code style="color:var(--accent)">E.17</code><br><span style="color:#9fb6cf;font-size:11px">${new Date(s.ts).toLocaleDateString('de-DE')}${by}</span>${warn}${cb}${del}`);
     userStrkLayer.addLayer(pl);
     [s.a,s.b].forEach((pt,wi)=>{
-      const mk=L.marker(pt,{icon:signMarkerIcon('E.17',Math.round(30*signScale))});
-      mk.bindPopup(`<b>Wasserski-Strecke</b> <code style="color:var(--accent)">E.17</code><br><span style="color:#9fb6cf;font-size:11px">${wi?'Endpunkt B':'Startpunkt A'} · ${new Date(s.ts).toLocaleDateString('de-DE')}${by}</span>${warn}${del}`);
+      const mk=L.marker(pt,{icon:signMarkerIcon('E.17',Math.round(30*signScale),conf)});
+      mk.bindPopup(`<b>Wasserski-Strecke</b> <code style="color:var(--accent)">E.17</code><br><span style="color:#9fb6cf;font-size:11px">${wi?'Endpunkt B':'Startpunkt A'} · ${new Date(s.ts).toLocaleDateString('de-DE')}${by}</span>${warn}${cb}${del}`);
       userStrkLayer.addLayer(mk);
     });
   });
@@ -1194,7 +1232,7 @@ function poiCat(k){ return POI_CATS.find(c=>c.key===k)||POI_CATS[POI_CATS.length
 let userPois = SHARED ? [] : JSON.parse(localStorage.getItem('userPois')||'[]');
 const userPoiLayer = L.layerGroup();
 function savePois(){ if(!SHARED) localStorage.setItem('userPois',JSON.stringify(userPois)); }
-function poiIcon(cat){ const c=poiCat(cat); return teardropIcon(c.color,c.glyph); }
+function poiIcon(cat,confirmed){ const c=poiCat(cat); return teardropIcon(c.color,c.glyph,markerScale,confirmed); }
 function renderUserPois(){
   userPoiLayer.clearLayers();
   userPois.forEach((o,idx)=>{
@@ -1202,8 +1240,8 @@ function renderUserPois(){
     const by=(SHARED&&o.author)?` · <b>${o.author}</b>`:'';
     const del=own?`<br><button onclick="window.__delPoi(${idx})" style="margin-top:8px;background:#c62828;color:#fff;border:0;border-radius:7px;padding:6px 11px;cursor:pointer">🗑 löschen</button>`:'';
     const gmap=`https://www.google.com/maps/dir/?api=1&destination=${o.lat},${o.lon}`;
-    const m=L.marker([o.lat,o.lon],{icon:poiIcon(o.cat)});
-    m.bindPopup(`<b>${escapeHtml(o.name||c.label)}</b><br><span style="color:#9fb6cf;font-size:12px">${c.glyph} ${c.label}${by}</span><br><a class="pop-link" href="${gmap}" target="_blank" rel="noopener">🧭 Route hierher</a>${noteBlock('p|'+o.ts)}${del}`);
+    const m=L.marker([o.lat,o.lon],{icon:poiIcon(o.cat,!!o.confirmed)});
+    m.bindPopup(`<b>${escapeHtml(o.name||c.label)}</b><br><span style="color:#9fb6cf;font-size:12px">${c.glyph} ${c.label}${by}</span><br><a class="pop-link" href="${gmap}" target="_blank" rel="noopener">🧭 Route hierher</a>${confirmBlock('poi',idx,!!o.confirmed)}${noteBlock('p|'+o.ts)}${del}`);
     userPoiLayer.addLayer(m);
   });
 }
@@ -1216,7 +1254,7 @@ function startPoiMode(cat){ cancelModes(); poiMode=cat; const c=poiCat(cat); ban
 async function placePoi(latlng){
   const cat=poiMode; poiMode=null; bannerHide();
   const name=((prompt('Name / Bezeichnung des Orts (optional):','')||'').trim()).slice(0,80);
-  const data={cat,name,lat:latlng.lat,lon:latlng.lng};
+  const data={cat,name,lat:latlng.lat,lon:latlng.lng,confirmed:true};
   if(SHARED){
     try{ const row=await sbPost('poi',data); userPois.push(sbRow(row)); }
     catch(e){ setStatus('⚠️ Speichern fehlgeschlagen: '+e.message+' – Tabelle „entries" angelegt?'); return; }

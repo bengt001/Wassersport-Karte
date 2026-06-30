@@ -54,6 +54,18 @@ Diese Anleitung bringt die App **kostenlos online** (GitHub Pages) und macht das
    vorhandener Tabelle bietet die App an, bisher lokal gespeicherte Einträge
    hochzuladen.
 
+2c. **Für den Bestätigungs-Status** (grüner/roter Punkt, „Ort bestätigen")
+   einmalig ausführen:
+
+   ```sql
+   alter table public.signs add column if not exists confirmed boolean not null default false;
+   create policy "update" on public.signs   for update using (true) with check (true);
+   create policy "update" on public.entries for update using (true) with check (true);
+   ```
+
+   (Neu eingetragene Einträge sind automatisch bestätigt; vorhandene gelten
+   als „noch nicht bestätigt", bis jemand sie bestätigt.)
+
 3. Links **Project Settings → API** öffnen und zwei Werte kopieren:
    - **Project URL** (z. B. `https://abcdxyz.supabase.co`)
    - **anon public**-Key (langer Schlüssel unter „Project API keys")
