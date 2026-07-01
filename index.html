@@ -229,6 +229,11 @@
           <span class="lab"><b>Fluss-Kilometer</b><span>km-Marken zum Abgleich (ab Zoom)</span></span>
           <span class="cnt" id="cnt-km">–</span>
         </label>
+        <label class="layer"><input type="checkbox" id="ly-water">
+          <span class="dot" style="background:#22d3ee"></span>
+          <span class="lab"><b>Wasserstraßen hervorheben</b><span>breit + Fließrichtung · ab Zoom 8</span></span>
+          <span class="cnt" id="cnt-water">–</span>
+        </label>
         <label class="layer"><input type="checkbox" id="ly-wind" checked>
           <span class="dot" style="background:#c79bf0"></span>
           <span class="lab"><b>Windsurf-Verleih & -Schulen</b><span>Verleih, Surfschulen, Shops, Spots</span></span>
@@ -669,6 +674,58 @@ document.getElementById('ly-km').addEventListener('change',()=>{
   if(document.getElementById('ly-km').checked && map.getZoom()<KM_MIN_ZOOM)
     setStatus('ℹ️ Fluss-Kilometer erscheinen ab näherem Zoom (Stadt-/Flussebene).');
 });
+
+/* ---------- Wasserstraßen hervorheben (breite Linien + Fließrichtung, live aus OSM) ---------- */
+const waterLayer = L.layerGroup();
+const WATER_MIN_ZOOM = 8;
+let waterActive=false, waterFetchedBounds=null, waterBusy=false, waterTimer=null;
+function screenAngle(a,b){ const p1=map.latLngToLayerPoint(a), p2=map.latLngToLayerPoint(b); return Math.atan2(p2.y-p1.y,p2.x-p1.x)*180/Math.PI; }
+function drawWater(elements){
+  waterLayer.clearLayers();
+  let count=0, arrows=0;
+  for(const w of elements){
+    const g=w.geometry; if(!g||g.length<2) continue;
+    const ll=g.map(p=>[p.lat,p.lon]);
+    L.polyline(ll,{color:'#06283a',weight:7,opacity:.5,lineCap:'round',lineJoin:'round'}).addTo(waterLayer);   // dunkles Casing
+    L.polyline(ll,{color:'#22d3ee',weight:3.5,opacity:.95,lineCap:'round',lineJoin:'round'}).addTo(waterLayer); // helle Ader
+    count++;
+    if(arrows<600){ let acc=0, next=1300;
+      for(let i=0;i<ll.length-1;i++){
+        const seg=map.distance(ll[i],ll[i+1]); acc+=seg;
+        if(acc>=next && seg>25){
+          const ang=screenAngle(ll[i],ll[i+1]);
+          L.marker([(ll[i][0]+ll[i+1][0])/2,(ll[i][1]+ll[i+1][1])/2],{interactive:false,keyboard:false,
+            icon:L.divIcon({className:'',iconSize:[16,16],iconAnchor:[8,8],html:`<div style="color:#eafcff;font:700 15px/1 sans-serif;transform:rotate(${ang}deg);text-shadow:0 0 3px #04202e,0 0 3px #04202e">➤</div>`})}).addTo(waterLayer);
+          arrows++; next+=1300; if(arrows>=600) break;
+        }
+      }
+    }
+  }
+  document.getElementById('cnt-water').textContent=count;
+  return count;
+}
+async function fetchWaterHighlight(){
+  if(!waterActive) return;
+  if(map.getZoom()<WATER_MIN_ZOOM){ setStatus('ℹ️ Wasserstraßen hervorheben: auf Bundesland-/Regionsebene zoomen (ab Zoom 8).'); return; }
+  const pb=map.getBounds().pad(0.25);
+  if(waterFetchedBounds && waterFetchedBounds.contains(map.getBounds())) return; // schon abgedeckt
+  if(waterBusy) return; waterBusy=true;
+  setStatus('🌊 Lade Wasserstraßen …');
+  const q=`[out:json][timeout:30];(way["waterway"~"^(river|canal)$"](${pb.getSouth()},${pb.getWest()},${pb.getNorth()},${pb.getEast()}););out geom;`;
+  const eps=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+  let data=null;
+  for(const ep of eps){ try{ const r=await fetch(ep,{method:'POST',body:q}); if(!r.ok) continue; data=await r.json(); if(data&&data.elements) break; }catch(_){} }
+  waterBusy=false;
+  if(!data||!data.elements){ setStatus('⚠️ Wasserstraßen konnten nicht geladen werden (Overpass ausgelastet – später erneut).'); return; }
+  const n=drawWater(data.elements); waterFetchedBounds=pb;
+  setStatus(`✅ ${n} Wasserstraßen-Abschnitte hervorgehoben – Pfeile zeigen die Fließrichtung.`);
+}
+document.getElementById('ly-water').addEventListener('change',e=>{
+  waterActive=e.target.checked;
+  if(waterActive){ map.addLayer(waterLayer); waterFetchedBounds=null; fetchWaterHighlight(); }
+  else { map.removeLayer(waterLayer); waterLayer.clearLayers(); document.getElementById('cnt-water').textContent='–'; }
+});
+map.on('moveend',()=>{ if(!waterActive) return; clearTimeout(waterTimer); waterTimer=setTimeout(fetchWaterHighlight,500); });
 
 /* ---------- Windsurf: Verleih / Schulen / Shops / Spots ---------- */
 const windGroup = L.markerClusterGroup({chunkedLoading:true, maxClusterRadius:50,
